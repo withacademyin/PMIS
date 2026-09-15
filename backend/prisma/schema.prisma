@@ -1,0 +1,118 @@
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+enum Role {
+  LEARNER
+  RECRUITER
+  ADMIN
+}
+
+enum ApplicationStatus {
+  APPLIED
+  UNDER_REVIEW
+  SHORTLISTED
+  INTERVIEW_SCHEDULED
+  REJECTED
+  ACCEPTED
+}
+
+model User {
+  id               String            @id @default(uuid())
+  email            String            @unique
+  password         String
+  role             Role              @default(LEARNER)
+  createdAt        DateTime          @default(now())
+  studentProfile   StudentProfile?
+  recruiterProfile RecruiterProfile?
+}
+
+model StudentProfile {
+  id               String         @id @default(uuid())
+  userId           String         @unique
+  user             User           @relation(fields: [userId], references: [id])
+  fullName         String
+  college          String
+  degree           String?
+  graduationYear   Int?
+  isVerified       Boolean        @default(false)
+  skills           String[]
+  skillScores      Json           @default("{}")
+  cheatingFlags    Int            @default(0)
+  lastAssessmentAt DateTime?
+  languages        String[]
+  projectTypes     String[]
+  certifications   String[]
+  resumeUrl        String?
+  contextBlob      String?
+  applications     Application[]
+  studentSkills    StudentSkill[]
+}
+
+model RecruiterProfile {
+  id          String       @id @default(uuid())
+  userId      String       @unique
+  user        User         @relation(fields: [userId], references: [id])
+  companyName String
+  isVerified  Boolean      @default(true)
+  jobs        JobListing[]
+}
+
+model JobListing {
+  id             String           @id @default(uuid())
+  title          String
+  description    String
+  recruiterId    String
+  recruiter      RecruiterProfile @relation(fields: [recruiterId], references: [id])
+  requiredSkills String[]
+  applications   Application[]
+  createdAt      DateTime         @default(now())
+}
+
+model Application {
+  id            String            @id @default(uuid())
+  studentId     String
+  student       StudentProfile    @relation(fields: [studentId], references: [id])
+  jobId         String
+  job           JobListing        @relation(fields: [jobId], references: [id])
+  status        ApplicationStatus @default(APPLIED)
+  matchScore    Float?
+  aiScore       Float?
+  aiFeedback    String?
+  interviewDate DateTime?
+  interviewLink String?
+  appliedAt     DateTime          @default(now())
+
+  @@unique([studentId, jobId])
+}
+
+model CanonicalEntity {
+  id             Int                    @id @default(autoincrement())
+  canonical_name String
+  type           String // skill, language, project_type, certification
+  category       String?
+  description    String?
+  aliases        String[]
+  embedding      Unsupported("vector")?
+  is_active      Boolean                @default(true)
+  studentSkills  StudentSkill[]
+}
+
+model StudentSkill {
+  id         Int             @id @default(autoincrement())
+  studentId  String
+  student    StudentProfile  @relation(fields: [studentId], references: [id])
+  entityId   Int
+  entity     CanonicalEntity @relation(fields: [entityId], references: [id])
+  status     String
+  confidence Float
+  evidence   String?
+  source     String
+}
