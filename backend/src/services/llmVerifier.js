@@ -1,8 +1,7 @@
-import { getAiClient, withRetry } from './aiService.js';
+import { generateJsonContent } from './aiService.js';
 
 export const verifyEntityContext = async (entity, candidate, evidence, section) => {
-  const ai = getAiClient();
-  if (!ai || !evidence) return { action: 'unresolved' };
+  if (!evidence) return { action: 'unresolved' };
 
   try {
     const prompt = `You are a technical context verifier. Your job is to determine if the candidate actually possesses or used the canonical skill based on the evidence provided from their resume.
@@ -16,16 +15,9 @@ export const verifyEntityContext = async (entity, candidate, evidence, section) 
     Return ONLY a valid JSON object with an "action" (either "accept" or "reject") and a short "reason" string.
     Example: { "action": "accept", "reason": "The candidate clearly states they used Kubernetes to deploy microservices." }`;
 
-    const response = await withRetry(() => ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-    }));
-
-    const output = response.text ? response.text.trim() : '';
-    const cleanJson = output.replace(/```json/gi, '').replace(/```/g, '').trim();
+    const parsed = await generateJsonContent(prompt, 'gpt-4o');
     
-    if (cleanJson) {
-      const parsed = JSON.parse(cleanJson);
+    if (parsed) {
       return {
         action: parsed.action === 'accept' ? 'accept' : 'reject',
         reason: parsed.reason || ''
