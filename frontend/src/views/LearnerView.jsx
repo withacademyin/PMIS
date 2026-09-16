@@ -15,6 +15,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AssessmentModal from '@/components/AssessmentModal';
 import UpdateResumeModal from '@/components/UpdateResumeModal';
+import KraSubmissionModal from '@/components/KraSubmissionModal';
 import { Logo } from '@/components/ui/logo';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import { ErrorBanner } from '@/components/shared/ErrorBanner';
@@ -22,6 +23,7 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { EmptyState } from '@/components/shared/EmptyState';
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { useInternships } from '@/hooks/useInternships';
 
 export function LearnerView() {
   const { user } = useAuth();
@@ -37,6 +39,13 @@ export function LearnerView() {
   const [isUpdateResumeOpen, setIsUpdateResumeOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState({});
   const [activeTab, setActiveTab] = useState('browse');
+  
+  // KRA Submission Modal state
+  const [isKraModalOpen, setIsKraModalOpen] = useState(false);
+  const [selectedKra, setSelectedKra] = useState(null);
+  const [selectedKraInternshipId, setSelectedKraInternshipId] = useState(null);
+  
+  const { internships, loading: loadingInternships, fetchInternships } = useInternships();
 
   const activeStudent = user?.studentProfile || {};
   const hasAssessment = Object.keys(user?.studentProfile?.skillScores || {}).length > 0;
@@ -107,6 +116,13 @@ export function LearnerView() {
 
   const filteredJobs = jobs.filter((j) => {
     const q = searchQuery.toLowerCase();
+    
+    // Hide jobs where the application was rejected
+    const existingApp = applications.find(a => a.jobId === j.id);
+    if (existingApp?.status === 'REJECTED') {
+      return false;
+    }
+
     return (
       (j.title || '').toLowerCase().includes(q) ||
       (j.recruiter?.companyName || '').toLowerCase().includes(q) ||
@@ -119,6 +135,7 @@ export function LearnerView() {
   const SIDEBAR_ITEMS = [
     { id: 'browse', icon: Briefcase, label: 'Browse Roles' },
     { id: 'applications', icon: FileText, label: 'Applications' },
+    { id: 'internships', icon: CalendarDays, label: 'My Internships' },
   ];
 
   return (
@@ -154,12 +171,14 @@ export function LearnerView() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-slate-900 tracking-tight">
-            {activeTab === 'browse' ? 'Opportunities' : 'My Applications'}
+            {activeTab === 'browse' && 'Opportunities'}
+            {activeTab === 'applications' && 'My Applications'}
+            {activeTab === 'internships' && 'My Internships'}
           </h1>
           <p className="text-xs text-slate-400 mt-0.5">
-            {activeTab === 'browse'
-              ? `${loading ? '—' : filteredJobs.length} roles available`
-              : `${applications.length} total · ${interviewCount} interview${interviewCount !== 1 ? 's' : ''}`}
+            {activeTab === 'browse' && `${loading ? '—' : filteredJobs.length} roles available`}
+            {activeTab === 'applications' && `${applications.length} total · ${interviewCount} interview${interviewCount !== 1 ? 's' : ''}`}
+            {activeTab === 'internships' && `${internships?.length || 0} active internships`}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -168,6 +187,7 @@ export function LearnerView() {
               <TabsList className="h-7 bg-slate-100/80">
                 <TabsTrigger value="browse">Roles</TabsTrigger>
                 <TabsTrigger value="applications">Applied</TabsTrigger>
+                <TabsTrigger value="internships">Internships</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
@@ -232,6 +252,9 @@ export function LearnerView() {
                 {filteredJobs.map((job) => {
                   const breakdown = calculateSkillsBreakdown(job.requiredSkills || []);
                   const isApplying = actionLoading[job.id];
+                  const existingApp = applications.find(a => a.jobId === job.id);
+                  const isApplied = !!existingApp;
+
                   return (
                     <Card key={job.id} className="flex flex-col shadow-none border-slate-200 bg-white hover:border-slate-300 transition-colors">
                       <CardHeader className="p-4 pb-3">
@@ -272,8 +295,8 @@ export function LearnerView() {
                         <Button variant="ghost" size="sm" onClick={() => setSelectedJobDetails(job)} className="h-6 px-2 text-[10px] text-slate-400 hover:text-slate-700">
                           <Eye className="w-3 h-3 mr-1" />Details
                         </Button>
-                        <Button size="sm" onClick={() => handleApplyAndScreen(job)} disabled={isApplying} className="h-6 px-3 text-[10px] bg-slate-900 hover:bg-slate-800 text-white shadow-none">
-                          {isApplying ? 'Processing…' : <><Send className="w-3 h-3 mr-1" />Apply</>}
+                        <Button size="sm" onClick={() => handleApplyAndScreen(job)} disabled={isApplying || isApplied} className="h-6 px-3 text-[10px] bg-slate-900 hover:bg-slate-800 text-white shadow-none">
+                          {isApplying ? 'Processing…' : isApplied ? 'Applied' : <><Send className="w-3 h-3 mr-1" />Apply</>}
                         </Button>
                       </CardFooter>
                     </Card>
@@ -332,9 +355,75 @@ export function LearnerView() {
         </>
       )}
 
+      {/* Internships Tab */}
+      {activeTab === 'internships' && (
+        <>
+          {loadingInternships ? (
+            <div className="grid grid-cols-1 gap-3"><div className="h-32 bg-white border border-slate-200 rounded-lg animate-pulse" /></div>
+          ) : internships?.length === 0 ? (
+            <EmptyState icon={CalendarDays} title="No active internships" subtitle="When you are hired, your internships and tasks will appear here." />
+          ) : (
+            <div className="space-y-4">
+              {internships.map(internship => (
+                <div key={internship.id} className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                  <div className="bg-slate-900 px-5 py-4 flex items-center justify-between">
+                    <div>
+                      <h2 className="text-white font-semibold">{internship.application?.job?.title || 'Internship'}</h2>
+                      <p className="text-slate-400 text-xs mt-0.5">{internship.application?.job?.recruiter?.companyName}</p>
+                    </div>
+                    <Badge className="bg-emerald-500/20 text-emerald-300 border-none hover:bg-emerald-500/30">Active</Badge>
+                  </div>
+                  <div className="p-5 bg-slate-50 border-b border-slate-100">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Key Result Areas (KRAs)</h3>
+                    {internship.kras?.length === 0 ? (
+                      <p className="text-xs text-slate-400 italic">No KRAs assigned yet. Your recruiter will assign tasks soon.</p>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {internship.kras?.map(kra => (
+                          <div 
+                            key={kra.id} 
+                            onClick={() => {
+                              setSelectedKra(kra);
+                              setSelectedKraInternshipId(internship.id);
+                              setIsKraModalOpen(true);
+                            }}
+                            className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm relative group cursor-pointer hover:border-slate-300 hover:shadow-md transition-all"
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <h4 className="font-semibold text-slate-800 text-sm">{kra.title}</h4>
+                              <StatusBadge status={kra.status || 'PENDING'} />
+                            </div>
+                            <p className="text-xs text-slate-500 line-clamp-2 mb-3">{kra.description}</p>
+                            <div className="flex items-center justify-between text-[10px] text-slate-400">
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                <span>Due: {new Date(kra.dueDate).toLocaleDateString()}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
       {/* Modals */}
       <AssessmentModal open={isAssessmentOpen} onOpenChange={setIsAssessmentOpen} application={activeApplication} job={selectedJob} onAssessmentComplete={handleAssessmentComplete} />
       <UpdateResumeModal open={isUpdateResumeOpen} onOpenChange={setIsUpdateResumeOpen} />
+      <KraSubmissionModal 
+        open={isKraModalOpen} 
+        onOpenChange={setIsKraModalOpen} 
+        kra={selectedKra} 
+        internshipId={selectedKraInternshipId}
+        onSubmitted={() => {
+          fetchInternships();
+        }}
+      />
 
       {/* Job Details Sheet */}
       <Sheet open={!!selectedJobDetails} onOpenChange={(open) => !open && setSelectedJobDetails(null)}>
@@ -358,9 +447,19 @@ export function LearnerView() {
             </div>
           </div>
           <SheetFooter>
-            <Button className="w-full mt-6 bg-slate-900 hover:bg-slate-800 text-white text-xs h-8" onClick={() => { const job = selectedJobDetails; setSelectedJobDetails(null); handleApplyAndScreen(job); }}>
-              Apply & Take AI Screening
-            </Button>
+            {(() => {
+              const sheetExistingApp = selectedJobDetails ? applications.find(a => a.jobId === selectedJobDetails.id) : null;
+              const sheetIsApplied = !!sheetExistingApp;
+              return (
+                <Button 
+                  disabled={sheetIsApplied} 
+                  className="w-full mt-6 bg-slate-900 hover:bg-slate-800 text-white text-xs h-8" 
+                  onClick={() => { const job = selectedJobDetails; setSelectedJobDetails(null); handleApplyAndScreen(job); }}
+                >
+                  {sheetIsApplied ? 'Applied' : 'Apply & Take AI Screening'}
+                </Button>
+              );
+            })()}
           </SheetFooter>
         </SheetContent>
       </Sheet>
