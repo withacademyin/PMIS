@@ -77,13 +77,13 @@ export function Navbar() {
           ) : (
             !loading && (
               <>
-                <Link href="/#engine" className="px-3 py-1.5 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                <Link href="/how-it-works" className="px-3 py-1.5 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors">
                   How It Works
                 </Link>
-                <Link href="/#roles" className="px-3 py-1.5 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                <Link href="/auth/signup?role=learner" className="px-3 py-1.5 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors">
                   Explore Roles
                 </Link>
-                <Link href="/#recruiters" className="px-3 py-1.5 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                <Link href="/auth/signup?role=recruiter" className="px-3 py-1.5 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors">
                   For Employers
                 </Link>
               </>
