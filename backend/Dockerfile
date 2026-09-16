@@ -5,8 +5,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies (force dev dependencies so Prisma CLI is installed even if NODE_ENV=production)
+RUN npm ci --include=dev
 
 # Copy the rest of the application code
 COPY . .
