@@ -1,4 +1,4 @@
-import { GoogleGenAI } from '@google/genai';
+
 import prisma from '../config/prisma.js';
 import { createRequire } from 'module';
 
