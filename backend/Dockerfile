@@ -18,4 +18,4 @@ RUN npx prisma generate
 EXPOSE 5001
 
 # The startup script should run migrations, seed, and then start the server
-CMD ["sh", "-c", "npx prisma migrate dev --name init && npx prisma db seed && npm run dev"]
+CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma db seed && npm start"]
