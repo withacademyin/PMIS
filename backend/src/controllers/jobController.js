@@ -94,3 +94,44 @@ export const getJobApplicants = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
+export const getAllApplicantsForRecruiter = async (req, res) => {
+  try {
+    const user = req.user;
+
+    if (user.role !== 'RECRUITER') {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
+
+    const recruiterProfile = await prisma.recruiterProfile.findUnique({
+      where: { userId: user.id },
+    });
+
+    if (!recruiterProfile) {
+      return res.status(404).json({ success: false, message: 'Recruiter profile not found.' });
+    }
+
+    const applications = await prisma.application.findMany({
+      where: {
+        job: { recruiterId: recruiterProfile.id },
+      },
+      include: {
+        job: true,
+        student: {
+          include: { user: true },
+        },
+      },
+      orderBy: { appliedAt: 'desc' },
+    });
+
+    const enriched = applications.map((app) => ({
+      ...app,
+      skillBreakdown: evaluateSkills(app.student.skills, app.job.requiredSkills, app.student.skillScores),
+    }));
+
+    return res.json({ success: true, data: enriched });
+  } catch (err) {
+    console.error('Fetch all applicants error:', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};

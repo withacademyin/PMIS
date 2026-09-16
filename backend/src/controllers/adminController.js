@@ -15,6 +15,7 @@ export const getStudents = async (req, res) => {
           select: {
             email: true,
             role: true,
+            createdAt: true,
           },
         },
       },
