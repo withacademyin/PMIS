@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react';
 import {
-  Briefcase, Calendar, XCircle, Clock, ShieldCheck,
-  ChevronDown, Info, Loader2, Plus, Sparkles, Users,
-  BarChart3, Settings, RefreshCw, AlertCircle,
+  Briefcase, BriefcaseBusiness, Calendar, XCircle, Clock, ShieldCheck,
+  ChevronDown, Info, Loader2, Plus, Sparkles, Users, UserCheck,
+  BarChart3, Settings, RefreshCw, AlertCircle, BrainCircuit,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
@@ -121,26 +121,55 @@ export function RecruiterView() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-slate-900 tracking-tight">Pipeline</h1>
-          <p className="text-xs text-slate-400 mt-0.5">Candidate management &amp; hiring workflow</p>
+          <h1 className="text-lg font-semibold text-slate-900 tracking-tight">{activeNav}</h1>
+          <p className="text-xs text-slate-400 mt-0.5">
+            {activeNav === 'Pipeline' && 'Candidate management & hiring workflow'}
+            {activeNav === 'Jobs' && 'Manage your job postings'}
+            {activeNav === 'Candidates' && 'All candidates across positions'}
+            {activeNav === 'Settings' && 'Account & preferences'}
+          </p>
         </div>
-        <Button size="sm" onClick={() => setIsCreateJobOpen(true)} className="h-7 px-3 text-[11px] bg-slate-900 hover:bg-slate-800 text-white shadow-none">
-          <Plus className="h-3 w-3 mr-1" />Post Job
-        </Button>
+        {activeNav === 'Pipeline' && (
+          <Button size="sm" onClick={() => setIsCreateJobOpen(true)} className="h-7 px-3 text-[11px] bg-slate-900 hover:bg-slate-800 text-white shadow-none">
+            <Plus className="h-3 w-3 mr-1" />Post Job
+          </Button>
+        )}
       </div>
 
       <ErrorBanner error={error} onDismiss={clearError} />
 
+      {/* ──── Pipeline Tab ──── */}
+      {activeNav === 'Pipeline' && (
+      <>
       {/* Metric Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <MetricCard label="Postings" value={loadingJobs ? '—' : jobs.length} icon={Briefcase} />
-        <MetricCard label="Applicants" value={loadingApplicants ? '—' : applicants.length} icon={Users} />
-        <MetricCard label="Shortlisted" value={loadingApplicants ? '—' : shortlistedCount} icon={ShieldCheck} />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="Postings"
+          value={loadingJobs ? '—' : jobs.length}
+          icon={BriefcaseBusiness}
+          description="Active positions"
+        />
+        <MetricCard
+          label="Applicants"
+          value={loadingApplicants ? '—' : applicants.length}
+          icon={Users}
+          description="Total candidates"
+          change={applicants.length > 0 ? `${applicants.length} received` : undefined}
+        />
+        <MetricCard
+          label="Shortlisted"
+          value={loadingApplicants ? '—' : shortlistedCount}
+          icon={UserCheck}
+          description="Moved forward"
+          change={shortlistedCount > 0 ? `${shortlistedCount} qualified` : undefined}
+          trend={shortlistedCount > 0 ? 'up' : undefined}
+        />
         <MetricCard
           label="Avg. AI Score"
           value={loadingApplicants || applicants.length === 0 ? '—' :
             Math.round(applicants.filter(a => a.aiScore).reduce((sum, a) => sum + a.aiScore, 0) / (applicants.filter(a => a.aiScore).length || 1))}
-          icon={Sparkles}
+          icon={BrainCircuit}
+          description="Automated screening"
         />
       </div>
 
@@ -237,7 +266,7 @@ export function RecruiterView() {
                             </span>
                           )}
                         </div>
-                        <span className="text-xs text-slate-500">{app.student?.college || '—'}</span>
+                        <span className="text-xs text-slate-700 font-medium">{app.student?.college || '—'}</span>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {app.student?.skills?.slice(0, 3).map((sk, idx) => (
                             <span key={idx} className="text-[9px] font-mono px-1 py-0 rounded border border-slate-100 bg-slate-50 text-slate-400">{sk}</span>
@@ -285,6 +314,49 @@ export function RecruiterView() {
           )}
         </CardContent>
       </Card>
+      </>
+      )}
+
+      {/* ──── Jobs Tab ──── */}
+      {activeNav === 'Jobs' && (
+        <Card className="shadow-none border-slate-200 bg-white">
+          <CardContent className="p-4">
+            <div className="space-y-3">
+              {loadingJobs ? (
+                <SkeletonRows count={3} />
+              ) : jobs.length === 0 ? (
+                <EmptyState icon={BriefcaseBusiness} title="No job postings" subtitle="Create your first job posting to get started" />
+              ) : (
+                jobs.map((job) => (
+                  <div key={job.id} className="flex items-center justify-between p-3 rounded-md border border-slate-100 hover:border-slate-200 transition-colors">
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-slate-800 truncate">{job.title}</p>
+                      <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-400">
+                        <span>{job.recruiter?.companyName || companyName}</span>
+                        <span className="text-slate-200">·</span>
+                        <span className="font-mono">{job.requiredSkills?.length || 0} skills</span>
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => { setSelectedJobId(job.id); setActiveNav('Pipeline'); }} className="h-6 px-2 text-[10px] text-slate-500 hover:text-slate-800 shadow-none">
+                      View Pipeline
+                    </Button>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ──── Candidates Tab ──── */}
+      {activeNav === 'Candidates' && (
+        <EmptyState icon={Users} title="All Candidates" subtitle="Select a job from the Pipeline to view candidates" />
+      )}
+
+      {/* ──── Settings Tab ──── */}
+      {activeNav === 'Settings' && (
+        <EmptyState icon={Settings} title="Settings" subtitle="Account settings will be available in a future update" />
+      )}
 
       {/* Feedback Sheet */}
       <Sheet open={!!viewFeedbackApp} onOpenChange={(open) => !open && setViewFeedbackApp(null)}>
