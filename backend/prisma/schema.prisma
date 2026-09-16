@@ -1,6 +1,7 @@
 datasource db {
   provider   = "postgresql"
   url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
   extensions = [vector]
 }
 
@@ -20,8 +21,17 @@ enum ApplicationStatus {
   UNDER_REVIEW
   SHORTLISTED
   INTERVIEW_SCHEDULED
+  SELECTED
   REJECTED
   ACCEPTED
+}
+
+model SystemSettings {
+  id                  Int      @id @default(1)
+  allowedColleges     String[] @default([])
+  allowedCourses      String[] @default([])
+  allowedEmailDomains String[] @default([])
+  updatedAt           DateTime @updatedAt
 }
 
 model User {
@@ -89,6 +99,7 @@ model Application {
   interviewDate DateTime?
   interviewLink String?
   appliedAt     DateTime          @default(now())
+  internship    Internship?
 
   @@unique([studentId, jobId])
 }
@@ -115,4 +126,77 @@ model StudentSkill {
   confidence Float
   evidence   String?
   source     String
+}
+
+enum InternshipStatus {
+  ONBOARDING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum KRAStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  BLOCKED
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  CHANGES_REQUESTED
+}
+
+enum KRAPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model Internship {
+  id            String           @id @default(uuid())
+  applicationId String           @unique
+  application   Application      @relation(fields: [applicationId], references: [id])
+  startDate     DateTime
+  endDate       DateTime?
+  status        InternshipStatus @default(ONBOARDING)
+  kras          KRA[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+}
+
+model KRA {
+  id            String        @id @default(uuid())
+  internshipId  String
+  internship    Internship    @relation(fields: [internshipId], references: [id])
+  title         String
+  description   String?
+  startDate     DateTime
+  dueDate       DateTime
+  status        KRAStatus     @default(NOT_STARTED)
+  priority      KRAPriority   @default(MEDIUM)
+  progress      Int           @default(0)
+  items         KRAItem[]
+  submissions   KRASubmission[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model KRAItem {
+  id          String   @id @default(uuid())
+  kraId       String
+  kra         KRA      @relation(fields: [kraId], references: [id])
+  title       String
+  completed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model KRASubmission {
+  id          String   @id @default(uuid())
+  kraId       String
+  kra         KRA      @relation(fields: [kraId], references: [id])
+  evidenceUrl String
+  notes       String?
+  status      String   @default("SUBMITTED") // SUBMITTED, APPROVED, REJECTED
+  createdAt   DateTime @default(now())
 }

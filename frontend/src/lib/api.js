@@ -73,6 +73,10 @@ export const api = {
     headers: getAuthHeader(),
   }).then(handleResponse),
 
+  getAllApplicants: () => fetch(`${BASE_URL}/jobs/applicants/all`, {
+    headers: getAuthHeader(),
+  }).then(handleResponse),
+
   getStudentApplications: () => fetch(`${BASE_URL}/applications`, {
     headers: getAuthHeader(),
   }).then(handleResponse),
@@ -121,6 +125,59 @@ export const api = {
       },
       body: JSON.stringify({ isVerified }),
     }).then(handleResponse),
+
+  getInternships: () => fetch(`${BASE_URL}/internships`, {
+    headers: getAuthHeader(),
+  }).then(handleResponse),
+
+  createInternship: (data) => fetch(`${BASE_URL}/internships`, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      ...getAuthHeader()
+    },
+    body: JSON.stringify(data),
+  }).then(handleResponse),
+
+  createKRA: (internshipId, data) => fetch(`${BASE_URL}/internships/${internshipId}/kras`, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      ...getAuthHeader()
+    },
+    body: JSON.stringify(data),
+  }).then(handleResponse),
+
+  updateKRAStatus: (internshipId, kraId, data) => fetch(`${BASE_URL}/internships/${internshipId}/kras/${kraId}/status`, {
+    method: 'PATCH',
+    headers: { 
+      'Content-Type': 'application/json',
+      ...getAuthHeader()
+    },
+    body: JSON.stringify(data),
+  }).then(handleResponse),
+
+  submitKRAEvidence: (internshipId, kraId, data) => fetch(`${BASE_URL}/internships/${internshipId}/kras/${kraId}/submissions`, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      ...getAuthHeader()
+    },
+    body: JSON.stringify(data),
+  }).then(handleResponse),
+
+  getSystemSettings: () => fetch(`${BASE_URL}/settings`, {
+    headers: getAuthHeader(),
+  }).then(handleResponse),
+
+  updateSystemSettings: (data) => fetch(`${BASE_URL}/settings`, {
+    method: 'PATCH',
+    headers: { 
+      'Content-Type': 'application/json',
+      ...getAuthHeader()
+    },
+    body: JSON.stringify(data),
+  }).then(handleResponse),
 };
 
 export default api;
