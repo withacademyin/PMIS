@@ -10,7 +10,7 @@ This guide outlines the steps and requirements for deploying the Full-Stack Hiri
 - **Backend**: Node.js + Express.js. Best deployed to **Render**, **Railway**, or **Fly.io** (platforms that support long-running processes).
 - **Database**: Neon Serverless Postgres.
 - **AI Models**: 
-  - Uses Google Gemini API.
+  - Uses OpenAI API.
   - Uses `@xenova/transformers` for local embeddings. *(Note: We have dynamically configured this to cache in the OS temp directory, making it natively compatible with Serverless environments).*
 
 ---
@@ -43,7 +43,7 @@ CLIENT_URL="https://your-deployed-frontend-url.vercel.app" # Used for CORS prote
 JWT_SECRET="your_very_secure_random_string"
 
 # AI Config
-GEMINI_API_KEY="your_google_gemini_api_key"
+OPENAI_API_KEY="your_openai_api_key"
 ```
 
 ### Build & Start Commands
@@ -77,7 +77,7 @@ BACKEND_API_URL="https://your-deployed-backend-url.onrender.com/api"
 
 1. **CORS Policy**: Ensure `CLIENT_URL` in the backend environment correctly points to your production frontend domain so that only your frontend can communicate with the API.
 2. **JWT Secret**: Generate a strong, random 256-bit string for the `JWT_SECRET`. Do not use the fallback development string.
-3. **API Keys**: Ensure your `GEMINI_API_KEY` is not checked into version control.
+3. **API Keys**: Ensure your `OPENAI_API_KEY` is not checked into version control.
 
 ## 6. Post-Deployment Verification
 

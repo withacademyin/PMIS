@@ -1,4 +1,4 @@
-const BASE_URL = '/api';
+const BASE_URL = '/api/v1';
 
 const getAuthHeader = () => {
   const token = localStorage.getItem('hiring_portal_token');
