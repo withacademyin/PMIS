@@ -1,0 +1,10 @@
+PORT=5001
+CLIENT_URL="https://your-frontend-deployment-url.vercel.app"
+JWT_SECRET="replace_with_a_highly_secure_random_string"
+
+# Database Configuration (Neon Serverless Postgres)
+DATABASE_URL="postgresql://neondb_owner:npg_e1jbEydHJhK3@ep-patient-shape-b3nxkfj7-pooler.c-4.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require&pgbouncer=true"
+DIRECT_URL="postgresql://neondb_owner:npg_e1jbEydHJhK3@ep-patient-shape-b3nxkfj7.c-4.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+
+# AI Service Configuration
+OPENAI_API_KEY="replace_with_your_openai_api_key"

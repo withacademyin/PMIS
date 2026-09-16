@@ -6,7 +6,7 @@ A comprehensive hiring portal built with Next.js, Express, PostgreSQL, and Prism
 - **Frontend**: Next.js, Tailwind CSS
 - **Backend**: Node.js, Express.js
 - **Database**: PostgreSQL (via Prisma ORM)
-- **AI/LLM**: Gemini API
+- **AI/LLM**: OpenAI API
 
 ## Prerequisites
 - Docker & Docker Compose (Recommended)
@@ -16,7 +16,7 @@ A comprehensive hiring portal built with Next.js, Express, PostgreSQL, and Prism
 ## Quick Start (with Docker) - Recommended
 
 1. **Environment Variables**:
-   Copy the example environment files and fill in your secrets (specifically your `GEMINI_API_KEY`).
+   Copy the example environment files and fill in your secrets (specifically your `OPENAI_API_KEY`).
    ```bash
    cp backend/.env.example backend/.env
    cp frontend/.env.example frontend/.env
@@ -41,7 +41,7 @@ If you prefer to run things locally without Docker:
 2. **Backend**:
    ```bash
    cd backend
-   cp .env.example .env # Update DATABASE_URL and GEMINI_API_KEY
+   cp .env.example .env # Update DATABASE_URL and OPENAI_API_KEY
    npm install
    npx prisma migrate dev
    npx prisma db seed

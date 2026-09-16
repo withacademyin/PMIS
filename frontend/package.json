@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "next dev -p 5173",
     "build": "next build",
-    "start": "next start -p 5173"
+    "start": "next start"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.2.6",

@@ -1,8 +1,7 @@
-import { getAiClient, withRetry } from './aiService.js';
+import { generateJsonContent } from './aiService.js';
 
 export const extractNovelEntities = async (text, expectedType = 'skill') => {
-  const ai = getAiClient();
-  if (!ai || !text || text.length < 5) return [];
+  if (!text || text.length < 5) return [];
 
   try {
     const prompt =
@@ -15,17 +14,9 @@ export const extractNovelEntities = async (text, expectedType = 'skill') => {
     Resume text snippet:
     "${text}"`;
 
-    const response = await withRetry(() => ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-    }));
-
-    const output = response.text ? response.text.trim() : '';
-    const cleanJson = output.replace(/```json/gi, '').replace(/```/g, '').trim();
+    const parsed = await generateJsonContent(prompt, 'gpt-4o');
     
-    if (!cleanJson) return [];
-
-    const parsed = JSON.parse(cleanJson);
+    if (!parsed) return [];
     
     if (Array.isArray(parsed)) {
       return parsed.map(p => ({

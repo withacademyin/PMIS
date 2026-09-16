@@ -15,6 +15,7 @@ COPY . .
 # Environment variables must be present at build time
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV STANDALONE=1
 
 RUN npm run build
 
