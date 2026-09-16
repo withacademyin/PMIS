@@ -34,14 +34,14 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use('/api/health', healthRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/students', studentRoutes);
-app.use('/api/jobs', jobRoutes);
-app.use('/api/applications', applicationRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/internships', internshipRoutes);
-app.use('/api/settings', settingsRoutes);
+app.use('/api/v1/health', healthRoutes);
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/students', studentRoutes);
+app.use('/api/v1/jobs', jobRoutes);
+app.use('/api/v1/applications', applicationRoutes);
+app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/internships', internshipRoutes);
+app.use('/api/v1/settings', settingsRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found` });
