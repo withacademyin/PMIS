@@ -2,7 +2,7 @@ import './globals.css';
 import { Providers } from '@/components/Providers';
 
 export const metadata = {
-  title: 'Hiring Portal — Enterprise Internship & Skill Matching',
+  title: 'Hiring Portal —  Find Internship ',
   description: 'AI-assisted technical screening and deterministic skill matching portal for Learners, Recruiters, and Academic Admins.',
 };
 
@@ -13,7 +13,7 @@ export default function RootLayout({ children }) {
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
       </head>
