@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Upload, FileText, CheckCircle2, Loader2, GraduationCap, Clock, AlertCircle } from 'lucide-react';
 import { Logo } from '@/components/ui/logo';
 import { api } from '@/lib/api';
+import { useSettings } from '@/hooks/useSettings';
 import { ProgressUpload } from '@/components/ui/progress-upload';
 import { MorphingInfinity } from '@/components/ui/morphing-infinity';
 import { Progress } from '@/components/ui/progress';
@@ -37,6 +38,7 @@ const ParsingProgress = () => {
 
 export default function StudentOnboarding() {
   const { user, loading, completeOnboarding, token } = useAuth();
+  const { settings, loading: settingsLoading } = useSettings();
   const router = useRouter();
   
   const [step, setStep] = useState(1);
@@ -300,22 +302,54 @@ export default function StudentOnboarding() {
           <CardContent>
             {step === 1 && (
               <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">Institute / University</label>
-                  <Input 
-                    placeholder="e.g. Stanford University"
-                    value={formData.institute}
-                    onChange={(e) => setFormData({...formData, institute: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">Course / Degree</label>
-                  <Input 
-                    placeholder="e.g. B.S. Computer Science"
-                    value={formData.course}
-                    onChange={(e) => setFormData({...formData, course: e.target.value})}
-                  />
-                </div>
+                {settingsLoading ? (
+                  <div className="flex justify-center py-4"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></div>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700">Institute / University</label>
+                      {settings.allowedColleges?.length > 0 ? (
+                        <select 
+                          className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:border-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
+                          value={formData.institute}
+                          onChange={(e) => setFormData({...formData, institute: e.target.value})}
+                        >
+                          <option value="" disabled>Select your college...</option>
+                          {settings.allowedColleges.map((c) => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <Input 
+                          placeholder="e.g. Stanford University"
+                          value={formData.institute}
+                          onChange={(e) => setFormData({...formData, institute: e.target.value})}
+                        />
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700">Course / Degree</label>
+                      {settings.allowedCourses?.length > 0 ? (
+                        <select 
+                          className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:border-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
+                          value={formData.course}
+                          onChange={(e) => setFormData({...formData, course: e.target.value})}
+                        >
+                          <option value="" disabled>Select your course...</option>
+                          {settings.allowedCourses.map((c) => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <Input 
+                          placeholder="e.g. B.S. Computer Science"
+                          value={formData.course}
+                          onChange={(e) => setFormData({...formData, course: e.target.value})}
+                        />
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
