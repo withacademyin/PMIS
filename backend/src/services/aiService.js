@@ -1,5 +1,10 @@
 import { GoogleGenAI } from '@google/genai';
-import { pipeline } from '@xenova/transformers';
+import { pipeline, env } from '@xenova/transformers';
+import os from 'os';
+
+// Automatically configure cache directory for Serverless compatibility (e.g., Vercel)
+// It defaults to the OS temp directory which is writable in serverless environments.
+env.cacheDir = process.env.TRANSFORMERS_CACHE || os.tmpdir();
 
 export const getAiClient = () => {
   const apiKey = process.env.GEMINI_API_KEY?.trim();
