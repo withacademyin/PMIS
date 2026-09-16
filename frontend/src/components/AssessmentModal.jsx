@@ -108,7 +108,7 @@ export function AssessmentModal({ open, onOpenChange, application, job, onAssess
           <div className="py-12 flex flex-col items-center justify-center text-center space-y-3">
             <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
             <div className="text-xs text-slate-500 font-medium">
-              Generating tailored questions with Gemini 2.5 Flash...
+              Generating tailored questions with OpenAI...
             </div>
           </div>
         ) : result ? (
