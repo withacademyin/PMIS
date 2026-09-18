@@ -76,6 +76,16 @@ export function ScheduleModal({ open, onOpenChange, application, onScheduled }) 
           </div>
         )}
 
+        {application?.status === 'APPLIED' && (
+          <div className="rounded-md border border-amber-200 bg-amber-50 p-3 mb-4 text-xs text-amber-700 flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
+            <div>
+              <p className="font-semibold">Candidate hasn't accepted yet</p>
+              <p className="mt-1">This candidate is still in the APPLIED stage. You are scheduling an interview before they have formally accepted a shortlisting.</p>
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">

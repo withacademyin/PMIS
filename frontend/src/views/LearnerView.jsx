@@ -4,8 +4,9 @@ import React, { useState, useEffect } from 'react';
 import {
   Building2, MapPin, Briefcase, Banknote, Search,
   FileText, Send, Eye, Clock, Sparkles, CalendarDays,
-  ExternalLink,
+  ExternalLink, GraduationCap,
 } from 'lucide-react';
+import { MetricCard } from '@/components/shared/MetricCard';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -39,6 +40,11 @@ export function LearnerView() {
   const [isUpdateResumeOpen, setIsUpdateResumeOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState({});
   const [activeTab, setActiveTab] = useState('browse');
+  const [expandedJobs, setExpandedJobs] = useState({});
+
+  const toggleJobDescription = (jobId) => {
+    setExpandedJobs(prev => ({ ...prev, [jobId]: !prev[jobId] }));
+  };
   
   // KRA Submission Modal state
   const [isKraModalOpen, setIsKraModalOpen] = useState(false);
@@ -68,6 +74,28 @@ export function LearnerView() {
       setError(err.message || 'Failed to load internship opportunities.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchApplications = async () => {
+    try {
+      const appsRes = await api.getStudentApplications().catch(() => ({ data: [] }));
+      if (appsRes.data) setApplications(appsRes.data);
+    } catch (err) {
+      console.error('Failed to fetch applications:', err);
+    }
+  };
+
+
+
+  const handleApplicationResponse = async (appId, status) => {
+    try {
+      const res = await api.updateApplicationStatus(appId, { status });
+      if (res.success) {
+        fetchApplications();
+      }
+    } catch (err) {
+      console.error('Failed to update application status:', err);
     }
   };
 
@@ -112,6 +140,8 @@ export function LearnerView() {
 
   const handleAssessmentComplete = (updatedApp) => {
     setActiveApplication(updatedApp);
+    fetchApplications();
+    fetchInternships();
   };
 
   const filteredJobs = jobs.filter((j) => {
@@ -200,6 +230,40 @@ export function LearnerView() {
         </div>
       </div>
 
+      {/* Metric Cards */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 my-5">
+        <MetricCard
+          label="Roles"
+          value={loading ? '—' : filteredJobs.length}
+          icon={Briefcase}
+          description="Available positions"
+          color="subtle-blue"
+        />
+        <MetricCard
+          label="Applications"
+          value={applications.length}
+          icon={FileText}
+          description="Submitted roles"
+          color="light-blue"
+        />
+        <MetricCard
+          label="Interviews"
+          value={interviewCount}
+          icon={CalendarDays}
+          description="Scheduled calls"
+          change={interviewCount > 0 ? `${interviewCount} active` : undefined}
+          trend={interviewCount > 0 ? 'up' : undefined}
+          color="light-green"
+        />
+        <MetricCard
+          label="Internships"
+          value={loadingInternships ? '—' : (internships?.length || 0)}
+          icon={GraduationCap}
+          description="Active placements"
+          color="light-pink"
+        />
+      </div>
+
       {/* Pending Assessment Banner */}
       {!hasAssessment && (
         <div className="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-xl p-5 text-white flex flex-col sm:flex-row items-center justify-between gap-4 shadow-md mb-6">
@@ -281,7 +345,19 @@ export function LearnerView() {
                         </div>
                       </CardHeader>
                       <CardContent className="px-4 pb-3 pt-0 flex-1">
-                        <p className="text-xs text-slate-500 leading-relaxed line-clamp-2 mb-3">{job.description}</p>
+                        <div className="mb-3">
+                          <p className={`text-xs text-slate-500 leading-relaxed ${expandedJobs[job.id] ? '' : 'line-clamp-2'}`}>
+                            {job.description}
+                          </p>
+                          {job.description && job.description.length > 150 && (
+                            <button 
+                              onClick={() => toggleJobDescription(job.id)}
+                              className="text-[10px] text-indigo-600 hover:text-indigo-800 font-medium mt-1"
+                            >
+                              {expandedJobs[job.id] ? 'See less' : 'See more'}
+                            </button>
+                          )}
+                        </div>
                         <div className="flex flex-wrap gap-1">
                           {breakdown.matched.map((s, i) => (
                             <span key={`m-${i}`} className="text-[9px] font-mono px-1.5 py-0.5 rounded border border-slate-200 bg-white text-slate-600">{s}</span>
@@ -345,6 +421,16 @@ export function LearnerView() {
                             Join <ExternalLink className="w-2.5 h-2.5" />
                           </a>
                         )}
+                      </div>
+                    )}
+                    {app.status === 'SHORTLISTED' && (
+                      <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2">
+                        <Button size="sm" onClick={() => handleApplicationResponse(app.id, 'ACCEPTED')} className="h-7 text-[10px] bg-slate-900 text-white hover:bg-slate-800 shadow-none px-3">
+                          Accept Offer
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => handleApplicationResponse(app.id, 'REJECTED')} className="h-7 text-[10px] shadow-none text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 px-3">
+                          Decline
+                        </Button>
                       </div>
                     )}
                   </CardContent>

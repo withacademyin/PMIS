@@ -20,6 +20,10 @@ export const register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const userRole = role.toUpperCase();
 
+    if (userRole === 'RECRUITER' || userRole === 'ADMIN') {
+      return res.status(403).json({ success: false, message: 'Registration for this role is not permitted.' });
+    }
+
     const user = await prisma.user.create({
       data: {
         email,
@@ -35,13 +39,6 @@ export const register = async (req, res) => {
           userId: user.id,
           fullName: name,
           college: '',
-        },
-      });
-    } else if (userRole === 'RECRUITER') {
-      profileData = await prisma.recruiterProfile.create({
-        data: {
-          userId: user.id,
-          companyName: name,
         },
       });
     }
