@@ -1,5 +1,86 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { TrendingUp, TrendingDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+const COLOR_VARIANTS = {
+  default: {
+    card: 'bg-white border-slate-200 hover:border-slate-300',
+    iconBg: 'bg-slate-50 border-slate-100/80',
+    iconColor: 'text-slate-500',
+    label: 'text-slate-400',
+    description: 'text-slate-400',
+  },
+  blue: {
+    card: 'bg-blue-50/70 border-blue-100/90 hover:border-blue-200',
+    iconBg: 'bg-blue-100/80 border-blue-200/50',
+    iconColor: 'text-blue-600',
+    label: 'text-blue-600/80 font-medium',
+    description: 'text-slate-500',
+  },
+  'subtle-blue': {
+    card: 'bg-blue-50/70 border-blue-100/90 hover:border-blue-200',
+    iconBg: 'bg-blue-100/80 border-blue-200/50',
+    iconColor: 'text-blue-600',
+    label: 'text-blue-600/80 font-medium',
+    description: 'text-slate-500',
+  },
+  sky: {
+    card: 'bg-sky-50/70 border-sky-100/90 hover:border-sky-200',
+    iconBg: 'bg-sky-100/80 border-sky-200/50',
+    iconColor: 'text-sky-600',
+    label: 'text-sky-600/80 font-medium',
+    description: 'text-slate-500',
+  },
+  'light-blue': {
+    card: 'bg-sky-50/70 border-sky-100/90 hover:border-sky-200',
+    iconBg: 'bg-sky-100/80 border-sky-200/50',
+    iconColor: 'text-sky-600',
+    label: 'text-sky-600/80 font-medium',
+    description: 'text-slate-500',
+  },
+  green: {
+    card: 'bg-emerald-50/70 border-emerald-100/90 hover:border-emerald-200',
+    iconBg: 'bg-emerald-100/80 border-emerald-200/50',
+    iconColor: 'text-emerald-600',
+    label: 'text-emerald-700/80 font-medium',
+    description: 'text-slate-500',
+  },
+  'light-green': {
+    card: 'bg-emerald-50/70 border-emerald-100/90 hover:border-emerald-200',
+    iconBg: 'bg-emerald-100/80 border-emerald-200/50',
+    iconColor: 'text-emerald-600',
+    label: 'text-emerald-700/80 font-medium',
+    description: 'text-slate-500',
+  },
+  pink: {
+    card: 'bg-pink-50/70 border-pink-100/90 hover:border-pink-200',
+    iconBg: 'bg-pink-100/80 border-pink-200/50',
+    iconColor: 'text-pink-600',
+    label: 'text-pink-600/80 font-medium',
+    description: 'text-slate-500',
+  },
+  'light-pink': {
+    card: 'bg-pink-50/70 border-pink-100/90 hover:border-pink-200',
+    iconBg: 'bg-pink-100/80 border-pink-200/50',
+    iconColor: 'text-pink-600',
+    label: 'text-pink-600/80 font-medium',
+    description: 'text-slate-500',
+  },
+  purple: {
+    card: 'bg-purple-50/70 border-purple-100/90 hover:border-purple-200',
+    iconBg: 'bg-purple-100/80 border-purple-200/50',
+    iconColor: 'text-purple-600',
+    label: 'text-purple-600/80 font-medium',
+    description: 'text-slate-500',
+  },
+  amber: {
+    card: 'bg-amber-50/70 border-amber-100/90 hover:border-amber-200',
+    iconBg: 'bg-amber-100/80 border-amber-200/50',
+    iconColor: 'text-amber-600',
+    label: 'text-amber-600/80 font-medium',
+    description: 'text-slate-500',
+  },
+};
 
 /**
  * MetricCard — a single KPI tile for dashboard headers.
@@ -10,19 +91,32 @@ import { TrendingUp, TrendingDown } from 'lucide-react';
  * @param {string}     [description] — supporting line beneath the value
  * @param {string}     [change]     — delta text ("+1 this month")
  * @param {'up'|'down'} [trend]     — colours the change indicator
+ * @param {string}     [color]      — color variant: 'blue' | 'sky' | 'green' | 'pink' | 'purple' | 'amber' | 'default'
+ * @param {string}     [className]  — additional CSS classes for the card
  */
-export function MetricCard({ label, value, icon: Icon, description, change, trend }) {
+export function MetricCard({
+  label,
+  value,
+  icon: Icon,
+  description,
+  change,
+  trend,
+  color = 'default',
+  className,
+}) {
+  const styles = COLOR_VARIANTS[color] || COLOR_VARIANTS.default;
+
   return (
-    <Card className="shadow-none border-slate-200 bg-white">
+    <Card className={cn('shadow-none transition-all duration-200', styles.card, className)}>
       <CardContent className="p-4">
         {/* Header: label + icon */}
         <div className="flex items-center justify-between mb-3">
-          <span className="text-[11px] font-medium uppercase tracking-wider text-slate-400">
+          <span className={cn('text-[11px] font-medium uppercase tracking-wider', styles.label)}>
             {label}
           </span>
           {Icon && (
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-50">
-              <Icon className="h-4 w-4 text-slate-500" strokeWidth={1.75} />
+            <div className={cn('flex h-8 w-8 items-center justify-center rounded-lg border transition-colors', styles.iconBg)}>
+              <Icon className={cn('h-4 w-4', styles.iconColor)} strokeWidth={1.75} />
             </div>
           )}
         </div>
@@ -34,7 +128,7 @@ export function MetricCard({ label, value, icon: Icon, description, change, tren
 
         {/* Supporting description */}
         {description && (
-          <p className="text-xs text-slate-400 mt-1.5">{description}</p>
+          <p className={cn('text-xs mt-1.5', styles.description || 'text-slate-400')}>{description}</p>
         )}
 
         {/* Change indicator */}

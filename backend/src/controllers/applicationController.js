@@ -129,7 +129,7 @@ export const updateApplicationStatus = async (req, res) => {
   try {
     const user = req.user;
 
-    if (user.role !== 'RECRUITER' && user.role !== 'ADMIN') {
+    if (user.role !== 'RECRUITER' && user.role !== 'ADMIN' && user.role !== 'LEARNER') {
       return res.status(403).json({ success: false, message: 'Forbidden' });
     }
 
@@ -150,6 +150,19 @@ export const updateApplicationStatus = async (req, res) => {
 
     if (!application) {
       return res.status(404).json({ success: false, message: 'Application not found.' });
+    }
+
+    if (user.role === 'LEARNER') {
+      if (application.student.userId !== user.id) {
+        return res.status(403).json({ success: false, message: 'Forbidden: Not your application.' });
+      }
+      if (status !== 'ACCEPTED' && status !== 'REJECTED') {
+        return res.status(403).json({ success: false, message: 'Learners can only ACCEPT or REJECT.' });
+      }
+      // Can only accept/reject if currently shortlisted or selected, etc.
+      if (application.status !== 'SHORTLISTED' && application.status !== 'SELECTED') {
+        return res.status(400).json({ success: false, message: 'Application is not in a valid state to accept or reject.' });
+      }
     }
 
     if (status && !VALID_STATUSES.includes(status)) {
