@@ -58,16 +58,48 @@ export const api = {
     body: JSON.stringify({ answers, infractions }),
   }).then(handleResponse),
 
-  getJobs: () => fetch(`${BASE_URL}/jobs`).then(handleResponse),
+  getJobs: () => fetch(`${BASE_URL}/jobs`, {
+    headers: { ...getAuthHeader() }
+  }).then(handleResponse),
 
-  createJob: (data) => fetch(`${BASE_URL}/jobs`, {
+  getTopCandidates: (jobId) => fetch(`${BASE_URL}/jobs/${jobId}/top-candidates`, {
+    headers: { ...getAuthHeader() }
+  }).then(handleResponse),
+
+  shortlistTopCandidate: (jobId, studentId) => fetch(`${BASE_URL}/jobs/${jobId}/shortlist-student`, {
     method: 'POST',
-    headers: { 
+    headers: {
       'Content-Type': 'application/json',
       ...getAuthHeader()
     },
-    body: JSON.stringify(data),
+    body: JSON.stringify({ studentId }),
   }).then(handleResponse),
+
+  parseJD: (data) => {
+    const isFormData = data instanceof FormData;
+    const headers = { ...getAuthHeader() };
+    if (!isFormData) {
+      headers['Content-Type'] = 'application/json';
+    }
+    return fetch(`${BASE_URL}/jobs/parse-jd`, {
+      method: 'POST',
+      headers,
+      body: isFormData ? data : JSON.stringify(data),
+    }).then(handleResponse);
+  },
+
+  createJob: (data) => {
+    const isFormData = data instanceof FormData;
+    const headers = { ...getAuthHeader() };
+    if (!isFormData) {
+      headers['Content-Type'] = 'application/json';
+    }
+    return fetch(`${BASE_URL}/jobs`, {
+      method: 'POST',
+      headers,
+      body: isFormData ? data : JSON.stringify(data),
+    }).then(handleResponse);
+  },
 
   getJobApplicants: (jobId) => fetch(`${BASE_URL}/jobs/${jobId}/applicants`, {
     headers: getAuthHeader(),
@@ -173,6 +205,41 @@ export const api = {
   updateSystemSettings: (data) => fetch(`${BASE_URL}/settings`, {
     method: 'PATCH',
     headers: { 
+      'Content-Type': 'application/json',
+      ...getAuthHeader()
+    },
+    body: JSON.stringify(data),
+  }).then(handleResponse),
+
+  getCompanies: () => fetch(`${BASE_URL}/companies`, {
+    headers: getAuthHeader(),
+  }).then(handleResponse),
+
+  createCompany: (data) => fetch(`${BASE_URL}/companies`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeader()
+    },
+    body: JSON.stringify(data),
+  }).then(handleResponse),
+
+  getMyCompany: () => fetch(`${BASE_URL}/companies/me`, {
+    headers: getAuthHeader(),
+  }).then(handleResponse),
+
+  deleteCompany: (id) => fetch(`${BASE_URL}/companies/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeader(),
+  }).then(handleResponse),
+
+  getCompanyById: (id) => fetch(`${BASE_URL}/companies/${id}`, {
+    headers: getAuthHeader(),
+  }).then(handleResponse),
+
+  updateMyCompany: (data) => fetch(`${BASE_URL}/companies/me`, {
+    method: 'PATCH',
+    headers: {
       'Content-Type': 'application/json',
       ...getAuthHeader()
     },

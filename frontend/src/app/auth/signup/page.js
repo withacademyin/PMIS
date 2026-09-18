@@ -14,11 +14,10 @@ import { Logo } from '@/components/ui/logo';
 function SignupScreen() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const defaultRole = searchParams.get('role') || '';
+  const defaultRole = 'learner';
   const { signup, user, loading } = useAuth();
 
-  const [role, setRole] = useState(defaultRole);
-  const [selectedRole, setSelectedRole] = useState(defaultRole);
+  const [role] = useState(defaultRole);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -95,91 +94,10 @@ function SignupScreen() {
 
       <div style={{position:"relative",zIndex:2,background:"#ffffff",borderRadius:12,padding:"2rem",width:"100%",maxWidth:400,boxShadow:"0 10px 40px rgba(0,0,0,0.1)",display:"flex",flexDirection:"column",alignItems:"center",border:"1px solid #e5e7eb"}}>
         
-        {!role ? (
-          <div style={{width:"100%",maxWidth:360,display:"flex",flexDirection:"column",alignItems:"center",textAlign:"center"}}>
-            <h1 style={{fontSize:"1.35rem",fontWeight:600,marginBottom:"0.25rem",letterSpacing:"-0.025em"}}>Join TalentPortal</h1>
-            <p style={{fontSize:"0.85rem",color:"#6b7280",marginBottom:"1.5rem",lineHeight:1.5}}>To begin, tell us what you're looking for.</p>
-
-            <div className="flex flex-col gap-3 w-full mb-6">
-              <button 
-                onClick={() => setSelectedRole('learner')}
-                className={`flex items-center p-4 border rounded-lg transition-all text-left group relative ${
-                  selectedRole === 'learner' 
-                    ? 'border-indigo-600 bg-indigo-50' 
-                    : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                }`}
-              >
-                <div className={`w-10 h-10 rounded-lg bg-slate-50 border flex items-center justify-center text-slate-700 transition-colors mr-4 shrink-0 ${
-                  selectedRole === 'learner' ? 'border-indigo-200 bg-indigo-50 text-indigo-600' : 'border-slate-200 group-hover:bg-indigo-50 group-hover:text-indigo-600 group-hover:border-indigo-200'
-                }`}>
-                  <GraduationCap className="w-5 h-5" strokeWidth={1.75} />
-                </div>
-                <div>
-                  <h3 className={`font-medium text-sm transition-colors ${selectedRole === 'learner' ? 'text-indigo-900' : 'text-slate-900'}`}>I'm looking for a job</h3>
-                  <p className={`text-xs mt-0.5 transition-colors ${selectedRole === 'learner' ? 'text-indigo-600' : 'text-slate-500'}`}>Discover internships & entry-level roles</p>
-                </div>
-                {selectedRole === 'learner' && (
-                  <div className="absolute right-4 h-4 w-4 rounded-full bg-indigo-600 flex items-center justify-center">
-                    <div className="h-1.5 w-1.5 rounded-full bg-white" />
-                  </div>
-                )}
-              </button>
-              
-              <button 
-                onClick={() => setSelectedRole('recruiter')}
-                className={`flex items-center p-4 border rounded-lg transition-all text-left group relative ${
-                  selectedRole === 'recruiter' 
-                    ? 'border-indigo-600 bg-indigo-50' 
-                    : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                }`}
-              >
-                <div className={`w-10 h-10 rounded-lg bg-slate-50 border flex items-center justify-center text-slate-700 transition-colors mr-4 shrink-0 ${
-                  selectedRole === 'recruiter' ? 'border-indigo-200 bg-indigo-50 text-indigo-600' : 'border-slate-200 group-hover:bg-indigo-50 group-hover:text-indigo-600 group-hover:border-indigo-200'
-                }`}>
-                  <Building2 className="w-5 h-5" strokeWidth={1.75} />
-                </div>
-                <div>
-                  <h3 className={`font-medium text-sm transition-colors ${selectedRole === 'recruiter' ? 'text-indigo-900' : 'text-slate-900'}`}>I'm looking for candidates</h3>
-                  <p className={`text-xs mt-0.5 transition-colors ${selectedRole === 'recruiter' ? 'text-indigo-600' : 'text-slate-500'}`}>Post jobs and discover verified talent</p>
-                </div>
-                {selectedRole === 'recruiter' && (
-                  <div className="absolute right-4 h-4 w-4 rounded-full bg-indigo-600 flex items-center justify-center">
-                    <div className="h-1.5 w-1.5 rounded-full bg-white" />
-                  </div>
-                )}
-              </button>
-            </div>
-
-            <button 
-              onClick={() => {
-                if (selectedRole) setRole(selectedRole);
-              }}
-              disabled={!selectedRole}
-              className={`w-full padding-[0.65rem] py-2.5 rounded-md font-medium text-sm transition-all duration-200 ${
-                selectedRole 
-                  ? 'bg-black text-white hover:bg-slate-800 cursor-pointer' 
-                  : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-              }`}
-            >
-              Continue
-            </button>
-
-            <div style={{marginTop:"1.5rem",fontSize:"0.875rem",color:"#6b7280"}}>
-              Already have an account?{" "}
-              <Link href="/auth/login" style={{color:"#000",fontWeight:500}}>Log In</Link>
-            </div>
-            {Footer}
-          </div>
-        ) : (
-          <div style={{width:"100%",maxWidth:360,display:"flex",flexDirection:"column",alignItems:"center",textAlign:"center"}}>
-            <div className="w-full flex justify-start mb-2">
-              <button onClick={() => {setRole(''); setErrorMsg('');}} className="text-slate-500 hover:text-black text-xs flex items-center">
-                ← Back
-              </button>
-            </div>
-            <Logo style={{width:44,height:44,marginBottom:"0.75rem"}} />
-            <h1 style={{fontSize:"1.35rem",fontWeight:600,marginBottom:"0.25rem",letterSpacing:"-0.025em"}}>Create an Account</h1>
-            <p style={{fontSize:"0.85rem",color:"#6b7280",marginBottom:"0.85rem",lineHeight:1.5}}>Register as a {role === 'learner' ? 'applicant' : 'recruiter'}.</p>
+        <div style={{width:"100%",maxWidth:360,display:"flex",flexDirection:"column",alignItems:"center",textAlign:"center"}}>
+          <Logo style={{width:44,height:44,marginBottom:"0.75rem"}} />
+          <h1 style={{fontSize:"1.35rem",fontWeight:600,marginBottom:"0.25rem",letterSpacing:"-0.025em"}}>Create an Account</h1>
+          <p style={{fontSize:"0.85rem",color:"#6b7280",marginBottom:"0.85rem",lineHeight:1.5}}>Register as an applicant.</p>
 
             {errorMsg && <p style={{color:"#ef4444",fontSize:"0.85rem",marginBottom:"0.5rem"}}>{errorMsg}</p>}
 
@@ -223,7 +141,6 @@ function SignupScreen() {
             </div>
             {Footer}
           </div>
-        )}
       </div>
     </div>
   );
