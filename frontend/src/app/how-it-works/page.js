@@ -38,7 +38,7 @@ export default function HowItWorksPage() {
             <section className="space-y-3">
               <h2 className="text-2xl font-bold text-slate-900">2. Deterministic Skill Matching</h2>
               <p>
-                Recruiters post roles with strict, deterministic skill prerequisites (e.g., must know React, Node.js, and PostgreSQL). When candidates apply, our matching engine instantly calculates a percentage overlap. Recruiters see an immediate, ranked pipeline based purely on objective qualifications.
+                Recruiters post roles with strict, deterministic skill prerequisites (e.g., must know React, Node.js, and PostgreSQL). When candidates apply, our matching engine instantly calculates a percentage overlap. Recruiters see an immediate, ranked candidate pool based purely on objective qualifications.
               </p>
             </section>
 
@@ -52,7 +52,7 @@ export default function HowItWorksPage() {
             <section className="space-y-3">
               <h2 className="text-2xl font-bold text-slate-900">4. Transparent Shortlisting</h2>
               <p>
-                Recruiters review the ranked pipeline and the AI screening results, and make their shortlisting decisions. The process is entirely transparent to the candidates, who receive clear feedback on exactly which skills they matched and how they performed on the assessment.
+                Recruiters review the ranked candidates and the AI screening results, and make their shortlisting decisions. The process is entirely transparent to the candidates, who receive clear feedback on exactly which skills they matched and how they performed on the assessment.
               </p>
             </section>
 
