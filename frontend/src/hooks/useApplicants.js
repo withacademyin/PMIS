@@ -20,7 +20,7 @@ export function useApplicants(jobId) {
       }
       if (res.success && Array.isArray(res.data)) setApplicants(res.data);
     } catch (err) {
-      setError(err.message || 'Failed to load applicant pipeline.');
+      setError(err.message || 'Failed to load active candidates.');
     } finally {
       setLoading(false);
     }

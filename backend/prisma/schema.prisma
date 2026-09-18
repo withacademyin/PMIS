@@ -16,6 +16,13 @@ enum Role {
   ADMIN
 }
 
+enum RecruiterInvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
 enum ApplicationStatus {
   APPLIED
   UNDER_REVIEW
@@ -42,6 +49,22 @@ model User {
   createdAt        DateTime          @default(now())
   studentProfile   StudentProfile?
   recruiterProfile RecruiterProfile?
+}
+
+model Company {
+  id          String             @id @default(uuid())
+  name        String
+  website     String?
+  industry    String?
+  location    String?
+  description String?
+  logoUrl     String?
+  size        String?
+  status      String             @default("ACTIVE")
+  recruiters  RecruiterProfile[]
+  invitations RecruiterInvitation[]
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
 }
 
 model StudentProfile {
@@ -71,14 +94,32 @@ model RecruiterProfile {
   userId      String       @unique
   user        User         @relation(fields: [userId], references: [id])
   companyName String
+  companyId   String?
+  company     Company?     @relation(fields: [companyId], references: [id])
   isVerified  Boolean      @default(true)
   jobs        JobListing[]
+}
+
+model RecruiterInvitation {
+  id          String    @id @default(uuid())
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id])
+  email       String
+  role        Role      @default(RECRUITER)
+  tokenHash   String
+  status      RecruiterInvitationStatus @default(PENDING)
+  invitedBy   String
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model JobListing {
   id             String           @id @default(uuid())
   title          String
   description    String
+  jdText         String?
   recruiterId    String
   recruiter      RecruiterProfile @relation(fields: [recruiterId], references: [id])
   requiredSkills String[]
@@ -102,6 +143,16 @@ model Application {
   internship    Internship?
 
   @@unique([studentId, jobId])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  actor       String
+  action      String
+  entity      String
+  entityId    String
+  metadata    Json?
+  timestamp   DateTime @default(now())
 }
 
 model CanonicalEntity {
