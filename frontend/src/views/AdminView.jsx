@@ -4,7 +4,8 @@ import React, { useState, useMemo } from 'react';
 import {
   Users, ShieldCheck, Clock, Search, Loader2, RefreshCw,
   TrendingUp, TrendingDown, Activity, BarChart3, ChevronRight,
-  LayoutDashboard, UserCheck, Settings, FileText,
+  LayoutDashboard, UserCheck, Settings, FileText, Building2, Plus, X, Send,
+  MoreHorizontal, Download, Filter, Edit3, Check, Mail, Building, Briefcase, Eye, Trash2
 } from 'lucide-react';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -21,8 +22,8 @@ import { SkeletonRows } from '@/components/shared/SkeletonRows';
 import { AvatarInitials } from '@/components/shared/AvatarInitials';
 import { useStudents } from '@/hooks/useStudents';
 import { useSettings } from '@/hooks/useSettings';
+import { useCompanies } from '@/hooks/useCompanies';
 import { TagInput } from '@/components/ui/tag-input';
-import { Check } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
@@ -96,6 +97,7 @@ const MinimalTooltip = ({ active, payload, label }) => {
 const SIDEBAR_ITEMS = [
   { icon: LayoutDashboard, label: 'Overview' },
   { icon: Users, label: 'Students' },
+  { icon: Building2, label: 'Companies' },
   { icon: UserCheck, label: 'Verification' },
   { icon: FileText, label: 'Reports' },
   { icon: Settings, label: 'Settings' },
@@ -103,12 +105,34 @@ const SIDEBAR_ITEMS = [
 
 export function AdminView() {
   const { user } = useAuth();
-  const { students, loading, error, setError, toggleLoading, fetchStudents, handleToggleVerification } = useStudents();
+  const { students, loading, error: studentError, setError: setStudentError, toggleLoading, fetchStudents, handleToggleVerification } = useStudents();
   const { settings, loading: settingsLoading, saveSettings, isSaving } = useSettings();
+  const { companies, loading: companiesLoading, error: companiesError, fetchCompanies, createCompany, deleteCompany } = useCompanies();
   
+  // Combine errors
+  const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [timeRange, setTimeRange] = useState('7D');
   const [activeNav, setActiveNav] = useState('Overview');
+  
+  const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false);
+  const [newCompany, setNewCompany] = useState({ name: '', website: '', industry: '', location: '', description: '', size: '' });
+  const [companyCreating, setCompanyCreating] = useState(false);
+
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [selectedCompanyId, setSelectedCompanyId] = useState(null);
+  const [inviting, setInviting] = useState(false);
+
+  // View Recruiters Modal state
+  const [isViewRecruitersModalOpen, setIsViewRecruitersModalOpen] = useState(false);
+  const [companyDetails, setCompanyDetails] = useState(null);
+  const [loadingCompanyDetails, setLoadingCompanyDetails] = useState(false);
+
+  // Delete Company Modal state
+  const [isDeleteCompanyModalOpen, setIsDeleteCompanyModalOpen] = useState(false);
+  const [consentText, setConsentText] = useState('');
+  const [deletingCompany, setDeletingCompany] = useState(false);
   
   const [localSettings, setLocalSettings] = useState({
     allowedColleges: [],
@@ -118,6 +142,12 @@ export function AdminView() {
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  React.useEffect(() => {
+    if (studentError || companiesError) {
+      setError(studentError || companiesError);
+    }
+  }, [studentError, companiesError]);
 
   React.useEffect(() => {
     if (settings && !settingsLoading) {
@@ -169,6 +199,93 @@ export function AdminView() {
     } else {
       setError("Unable to save configuration. Please try again.");
     }
+  };
+
+  const handleCreateCompany = async (e) => {
+    e.preventDefault();
+    setCompanyCreating(true);
+    const res = await createCompany(newCompany);
+    if (res.success) {
+      setIsCompanyModalOpen(false);
+      setNewCompany({ name: '', website: '', industry: '', location: '', description: '', size: '' });
+      fetchCompanies();
+    } else {
+      setError(res.message);
+    }
+    setCompanyCreating(false);
+  };
+
+  const handleInviteRecruiter = async (e) => {
+    e.preventDefault();
+    setInviting(true);
+    try {
+      const token = localStorage.getItem('hiring_portal_token');
+      const res = await fetch(`/api/v1/companies/${selectedCompanyId}/invite`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ email: inviteEmail })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setIsInviteModalOpen(false);
+        setInviteEmail('');
+        fetchCompanies();
+      } else {
+        setError(data.message || 'Failed to send invite.');
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to send invite.');
+    } finally {
+      setInviting(false);
+    }
+  };
+
+  const handleViewRecruiters = async (companyId) => {
+    setSelectedCompanyId(companyId);
+    setIsViewRecruitersModalOpen(true);
+    setLoadingCompanyDetails(true);
+    try {
+      const token = localStorage.getItem('hiring_portal_token');
+      const res = await fetch(`/api/v1/companies/${companyId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCompanyDetails(data.company);
+      } else {
+        setError(data.message || 'Failed to fetch company details');
+      }
+    } catch (err) {
+      setError('Failed to fetch company details');
+    } finally {
+      setLoadingCompanyDetails(false);
+    }
+  };
+
+  const handleDeleteCompanyClick = (company) => {
+    setSelectedCompanyId(company.id);
+    setCompanyDetails(company);
+    setConsentText('');
+    setIsDeleteCompanyModalOpen(true);
+  };
+
+  const handleConfirmDeleteCompany = async (e) => {
+    e.preventDefault();
+    if (consentText !== 'I UNDERSTAND') return;
+    setDeletingCompany(true);
+    const res = await deleteCompany(selectedCompanyId);
+    if (res.success) {
+      setIsDeleteCompanyModalOpen(false);
+      fetchCompanies();
+    } else {
+      setError(res.message);
+    }
+    setDeletingCompany(false);
   };
 
   const chartData = useMemo(() => getRealChartData(timeRange, students), [timeRange, students]);
@@ -278,6 +395,192 @@ export function AdminView() {
       onNavChange={setActiveNav}
       footer={<p className="text-[10px] text-slate-400 font-mono">v2.4.0</p>}
     >
+      {/* Create Company Modal */}
+      {isCompanyModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-slate-900">Create New Company</h2>
+              <button onClick={() => setIsCompanyModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleCreateCompany} className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-slate-700 block mb-1">Company Name *</label>
+                <Input required value={newCompany.name} onChange={(e) => setNewCompany({...newCompany, name: e.target.value})} placeholder="e.g. Acme Corp" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-700 block mb-1">Website</label>
+                <Input value={newCompany.website} onChange={(e) => setNewCompany({...newCompany, website: e.target.value})} placeholder="https://..." />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">Industry</label>
+                  <Input value={newCompany.industry} onChange={(e) => setNewCompany({...newCompany, industry: e.target.value})} placeholder="Technology" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">Company Size</label>
+                  <Input value={newCompany.size} onChange={(e) => setNewCompany({...newCompany, size: e.target.value})} placeholder="100-500" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-700 block mb-1">Location</label>
+                <Input value={newCompany.location} onChange={(e) => setNewCompany({...newCompany, location: e.target.value})} placeholder="City, Country" />
+              </div>
+              <div className="pt-2 flex justify-end gap-3">
+                <Button type="button" variant="ghost" onClick={() => setIsCompanyModalOpen(false)}>Cancel</Button>
+                <Button type="submit" disabled={companyCreating} className="bg-black text-white hover:bg-slate-800">
+                  {companyCreating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : 'Create Company'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Invite Recruiter Modal */}
+      {isInviteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-slate-900">Invite Recruiter</h2>
+              <button onClick={() => setIsInviteModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleInviteRecruiter} className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-slate-700 block mb-1">Recruiter Email *</label>
+                <Input required type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="recruiter@example.com" />
+              </div>
+              <div className="pt-2 flex justify-end gap-3">
+                <Button type="button" variant="ghost" onClick={() => setIsInviteModalOpen(false)}>Cancel</Button>
+                <Button type="submit" disabled={inviting} className="bg-indigo-600 text-white hover:bg-indigo-700">
+                  {inviting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <><Send className="w-3.5 h-3.5 mr-1.5" /> Send Invite</>}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Company Modal */}
+      {isDeleteCompanyModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/20 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-lg font-semibold text-slate-900 flex items-center">
+                <Trash2 className="w-5 h-5 text-red-500 mr-2" /> Delete Company
+              </h2>
+              <button onClick={() => setIsDeleteCompanyModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-xs text-slate-600 mb-4">
+              You are about to delete <strong>{companyDetails?.name}</strong>. This action will delete pending invitations and disable dashboard access for its recruiters. This action cannot be undone.
+            </p>
+            <form onSubmit={handleConfirmDeleteCompany} className="space-y-4">
+              <div>
+                <label className="text-[11px] font-semibold text-slate-700 block mb-1">Type "I UNDERSTAND" to confirm</label>
+                <Input required value={consentText} onChange={(e) => setConsentText(e.target.value)} placeholder="I UNDERSTAND" className="h-8 text-xs border-red-200 focus:border-red-500 focus:ring-red-500" />
+              </div>
+              <div className="pt-2 flex justify-end gap-3">
+                <Button type="button" variant="ghost" onClick={() => setIsDeleteCompanyModalOpen(false)} className="h-8 text-xs shadow-none">Cancel</Button>
+                <Button type="submit" disabled={deletingCompany || consentText !== 'I UNDERSTAND'} className="h-8 text-xs bg-red-600 text-white hover:bg-red-700 shadow-none">
+                  {deletingCompany ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : 'Delete Company'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* View Recruiters Modal */}
+      {isViewRecruitersModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/20 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl flex flex-col max-h-[85vh]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">{companyDetails?.name} Recruiters</h2>
+                <p className="text-xs text-slate-500">Active recruiters and pending invitations</p>
+              </div>
+              <button onClick={() => setIsViewRecruitersModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto flex-1">
+              {loadingCompanyDetails ? (
+                <div className="flex items-center justify-center py-10"><Loader2 className="w-5 h-5 text-slate-400 animate-spin" /></div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Active Recruiters */}
+                  <div>
+                    <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wider mb-3">Active Accounts</h3>
+                    {companyDetails?.recruiters?.length > 0 ? (
+                      <div className="border border-slate-100 rounded-md overflow-hidden">
+                        <Table>
+                          <TableHeader className="bg-slate-50">
+                            <TableRow className="hover:bg-transparent">
+                              <TableHead className="h-8 text-[10px]">Email</TableHead>
+                              <TableHead className="h-8 text-[10px]">Joined</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {companyDetails.recruiters.map((rec) => (
+                              <TableRow key={rec.id} className="hover:bg-slate-50/50">
+                                <TableCell className="py-2 text-xs text-slate-800">{rec.user.email}</TableCell>
+                                <TableCell className="py-2 text-xs text-slate-500">{new Date(rec.user.createdAt).toLocaleDateString()}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-500 italic">No active recruiters.</p>
+                    )}
+                  </div>
+
+                  {/* Pending Invitations */}
+                  <div>
+                    <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wider mb-3">Pending Invitations</h3>
+                    {companyDetails?.invitations?.length > 0 ? (
+                      <div className="border border-slate-100 rounded-md overflow-hidden">
+                        <Table>
+                          <TableHeader className="bg-slate-50">
+                            <TableRow className="hover:bg-transparent">
+                              <TableHead className="h-8 text-[10px]">Email</TableHead>
+                              <TableHead className="h-8 text-[10px]">Status</TableHead>
+                              <TableHead className="h-8 text-[10px]">Sent</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {companyDetails.invitations.map((inv) => (
+                              <TableRow key={inv.id} className="hover:bg-slate-50/50">
+                                <TableCell className="py-2 text-xs text-slate-800">{inv.email}</TableCell>
+                                <TableCell className="py-2">
+                                  <Badge variant="outline" className={`h-4 px-1.5 text-[9px] shadow-none ${inv.status === 'ACCEPTED' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>{inv.status}</Badge>
+                                </TableCell>
+                                <TableCell className="py-2 text-xs text-slate-500">{new Date(inv.createdAt).toLocaleDateString()}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-500 italic">No invitations.</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="px-6 py-4 border-t border-slate-100 flex justify-end">
+              <Button variant="outline" onClick={() => setIsViewRecruitersModalOpen(false)} className="h-8 text-xs shadow-none">Close</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header Row */}
       <div className="flex items-center justify-between">
         <div>
@@ -285,6 +588,7 @@ export function AdminView() {
           <p className="text-xs text-slate-400 mt-0.5">
             {activeNav === 'Overview' && 'System administration & student verification'}
             {activeNav === 'Students' && 'Browse and manage all students'}
+            {activeNav === 'Companies' && 'Manage participating companies on the platform'}
             {activeNav === 'Verification' && 'Review pending verifications'}
             {activeNav === 'Reports' && 'Analytics and exports'}
             {activeNav === 'Settings' && 'Manage how the platform handles student onboarding and verification.'}
@@ -293,6 +597,11 @@ export function AdminView() {
         {activeNav === 'Overview' && (
           <Button variant="outline" size="sm" onClick={fetchStudents} disabled={loading} className="h-7 px-2.5 text-[11px] border-slate-200 text-slate-500 hover:text-slate-800 shadow-none">
             <RefreshCw className={`h-3 w-3 mr-1.5 ${loading ? 'animate-spin' : ''}`} />Refresh
+          </Button>
+        )}
+        {activeNav === 'Companies' && (
+          <Button size="sm" onClick={() => setIsCompanyModalOpen(true)} className="h-7 px-3 text-[11px] bg-indigo-600 hover:bg-indigo-700 text-white shadow-none">
+            <Plus className="h-3.5 w-3.5 mr-1" /> Add Company
           </Button>
         )}
       </div>
@@ -304,10 +613,40 @@ export function AdminView() {
       <>
       {/* Metric Cards */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Total Students" value={loading ? '—' : students.length} icon={Users} description="Registered accounts" change="+12%" trend="up" />
-        <MetricCard label="Verified" value={loading ? '—' : verifiedCount} icon={ShieldCheck} description="Identity confirmed" change={`${verificationRate}% rate`} trend="up" />
-        <MetricCard label="Pending Review" value={loading ? '—' : pendingCount} icon={Clock} description="Awaiting verification" change={pendingCount > 0 ? 'Action needed' : 'All clear'} trend={pendingCount > 0 ? 'down' : 'up'} />
-        <MetricCard label="Avg. Processing" value="1.2d" icon={Activity} description="Verification turnaround" />
+        <MetricCard
+          label="Total Students"
+          value={loading ? '—' : students.length}
+          icon={Users}
+          description="Registered accounts"
+          change="+12%"
+          trend="up"
+          color="subtle-blue"
+        />
+        <MetricCard
+          label="Verified"
+          value={loading ? '—' : verifiedCount}
+          icon={ShieldCheck}
+          description="Identity confirmed"
+          change={`${verificationRate}% rate`}
+          trend="up"
+          color="light-blue"
+        />
+        <MetricCard
+          label="Pending Review"
+          value={loading ? '—' : pendingCount}
+          icon={Clock}
+          description="Awaiting verification"
+          change={pendingCount > 0 ? 'Action needed' : 'All clear'}
+          trend={pendingCount > 0 ? 'down' : 'up'}
+          color="light-green"
+        />
+        <MetricCard
+          label="Avg. Processing"
+          value="1.2d"
+          icon={Activity}
+          description="Verification turnaround"
+          color="light-pink"
+        />
       </div>
 
       {/* Chart Section */}
@@ -378,6 +717,93 @@ export function AdminView() {
             "Student Directory", 
             loading ? '—' : `Showing ${filteredStudents.length} of ${students.length} students`
           )}
+        </div>
+      )}
+
+      {/* ──── Companies Tab ──── */}
+      {activeNav === 'Companies' && (
+        <div className="pt-2">
+          <Card className="shadow-none border-slate-200 bg-white overflow-hidden">
+            <CardContent className="p-0">
+              {companiesLoading ? (
+                <SkeletonRows count={4} />
+              ) : companies.length === 0 ? (
+                <EmptyState icon={Building2} title="No companies found" subtitle="Get started by creating a new company" />
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-slate-100 hover:bg-transparent">
+                      <TableHead className="h-8 text-[10px]">Company</TableHead>
+                      <TableHead className="h-8 text-[10px]">Industry</TableHead>
+                      <TableHead className="h-8 text-[10px]">Location</TableHead>
+                      <TableHead className="h-8 text-[10px] text-center">Recruiters</TableHead>
+                      <TableHead className="h-8 text-[10px] text-center">Status</TableHead>
+                      <TableHead className="h-8 text-[10px] text-right pr-4">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {companies.map((company) => (
+                      <TableRow key={company.id} className="border-slate-50 hover:bg-slate-50/50">
+                        <TableCell className="py-2.5">
+                          <div className="flex items-center gap-2.5">
+                            <AvatarInitials name={company.name} />
+                            <div className="min-w-0">
+                              <p className="text-xs font-medium text-slate-800 truncate">{company.name}</p>
+                              {company.website && (
+                                <p className="text-[10px] text-slate-400 font-mono truncate">{company.website}</p>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-2.5 text-xs text-slate-600">{company.industry || '—'}</TableCell>
+                        <TableCell className="py-2.5 text-xs text-slate-600">{company.location || '—'}</TableCell>
+                        <TableCell className="py-2.5 text-center text-xs text-slate-600 font-medium">{company._count?.recruiters || 0}</TableCell>
+                        <TableCell className="py-2.5 text-center">
+                          <Badge variant="outline" className={`h-5 px-2 text-[10px] font-medium shadow-none border-emerald-200 bg-emerald-50/60 text-emerald-700`}>
+                            {company.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="py-2.5 text-right pr-4">
+                          <div className="flex justify-end gap-1">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => handleViewRecruiters(company.id)}
+                              className="h-6 w-6 p-0 text-slate-400 hover:text-slate-600 shadow-none"
+                              title="View Recruiters"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => {
+                                setSelectedCompanyId(company.id);
+                                setIsInviteModalOpen(true);
+                              }}
+                              className="h-6 w-6 p-0 text-indigo-500 hover:text-indigo-700 shadow-none"
+                              title="Invite Recruiter"
+                            >
+                              <Send className="w-3 h-3" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => handleDeleteCompanyClick(company)}
+                              className="h-6 w-6 p-0 text-red-400 hover:text-red-600 hover:bg-red-50 shadow-none"
+                              title="Delete Company"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
         </div>
       )}
 

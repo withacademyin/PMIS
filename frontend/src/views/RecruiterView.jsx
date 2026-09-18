@@ -1,5 +1,4 @@
 'use client';
-
 import React, { useState } from 'react';
 import {
   Briefcase, BriefcaseBusiness, Calendar, XCircle, Clock, ShieldCheck,
@@ -24,13 +23,14 @@ import { AvatarInitials } from '@/components/shared/AvatarInitials';
 import { useJobs } from '@/hooks/useJobs';
 import { useApplicants } from '@/hooks/useApplicants';
 import { useInternships } from '@/hooks/useInternships';
+import { useMyCompany } from '@/hooks/useMyCompany';
 import { FullScreenCalendar } from '@/components/ui/fullscreen-calendar';
 import HireModal from '@/components/HireModal';
 import KraModal from '@/components/KraModal';
 import api from '@/lib/api';
 
 const SIDEBAR_ITEMS = [
-  { icon: BarChart3, label: 'Pipeline' },
+  { icon: BarChart3, label: 'Active Candidates' },
   { icon: Briefcase, label: 'Jobs' },
   { icon: Users, label: 'Candidates' },
   { icon: GraduationCap, label: 'Interns' },
@@ -41,7 +41,7 @@ export function RecruiterView() {
   const { user } = useAuth();
   const { jobs, loading: loadingJobs, error: jobsError, setError: setJobsError, fetchJobs } = useJobs();
   const [selectedJobId, setSelectedJobId] = useState('');
-  const [activeNav, setActiveNav] = useState('Pipeline');
+  const [activeNav, setActiveNav] = useState('Active Candidates');
 
   // Auto-select first job when jobs load
   React.useEffect(() => {
@@ -54,6 +54,42 @@ export function RecruiterView() {
     handleStatusChange, updateApplicant,
   } = useApplicants(selectedJobId);
 
+  const [candidateView, setCandidateView] = useState('applied');
+  const [topCandidates, setTopCandidates] = useState([]);
+  const [loadingTopCandidates, setLoadingTopCandidates] = useState(false);
+
+  const fetchTopCandidates = async (jobId) => {
+    if (!jobId) return;
+    setLoadingTopCandidates(true);
+    try {
+      const res = await api.getTopCandidates(jobId);
+      if (res.success) setTopCandidates(res.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingTopCandidates(false);
+    }
+  };
+
+  const handleShortlistTopCandidate = async (studentId) => {
+    try {
+      const res = await api.shortlistTopCandidate(selectedJobId, studentId);
+      if (res.success) {
+        setTopCandidates(prev => prev.filter(c => c.student.id !== studentId));
+        fetchApplicants(selectedJobId);
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Error shortlisting candidate');
+    }
+  };
+
+  React.useEffect(() => {
+    if (selectedJobId && candidateView === 'sourcing') {
+      fetchTopCandidates(selectedJobId);
+    }
+  }, [selectedJobId, candidateView]);
+
   const {
     applicants: allApplicants, loading: loadingAllApplicants, error: allApplicantsError,
     fetchApplicants: fetchAllApplicants, handleStatusChange: handleAllStatusChange,
@@ -64,8 +100,10 @@ export function RecruiterView() {
     setError: setInternshipsError, fetchInternships
   } = useInternships();
 
+  const { company, loading: loadingCompany, error: companyError, updateMyCompany } = useMyCompany();
+
   // Combine errors from both hooks
-  const error = jobsError || applicantsError || allApplicantsError || internshipsError;
+  const error = jobsError || applicantsError || allApplicantsError || internshipsError || companyError;
   const clearError = () => { setJobsError(null); setApplicantsError(null); setInternshipsError(null); };
 
   // Schedule modal state
@@ -83,8 +121,46 @@ export function RecruiterView() {
 
   // Create job dialog state
   const [isCreateJobOpen, setIsCreateJobOpen] = useState(false);
-  const [newJobForm, setNewJobForm] = useState({ title: '', description: '', requiredSkills: '' });
+  const [newJobForm, setNewJobForm] = useState({ 
+    title: '', 
+    description: '', 
+    requiredSkills: '',
+    jdMode: 'write', // 'write' or 'upload'
+    jdText: '',
+    jdFile: null
+  });
   const [creatingJob, setCreatingJob] = useState(false);
+  const [isParsingJd, setIsParsingJd] = useState(false);
+
+  const handleParseJD = async (mode, content) => {
+    try {
+      setIsParsingJd(true);
+      const formData = new FormData();
+      if (mode === 'upload' && content) {
+        formData.append('jdFile', content);
+      } else if (mode === 'write' && content) {
+        formData.append('jdText', content);
+      } else {
+        setIsParsingJd(false);
+        return;
+      }
+      
+      const res = await api.parseJD(formData);
+      if (res.success && res.data) {
+        setNewJobForm(prev => ({
+          ...prev,
+          title: res.data.title || prev.title,
+          description: res.data.description || prev.description,
+           requiredSkills: (res.data.requiredSkills || []).join(', '),
+          jdText: res.data.jdText || prev.jdText
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to parse JD:', err);
+    } finally {
+      setIsParsingJd(false);
+    }
+  };
 
   const handleCreateJob = async (e) => {
     e.preventDefault();
@@ -92,16 +168,22 @@ export function RecruiterView() {
     setCreatingJob(true);
     clearError();
     try {
-      const payload = {
-        title: newJobForm.title,
-        description: newJobForm.description,
-        recruiterId: user.recruiterProfile.id,
-        requiredSkills: newJobForm.requiredSkills.split(',').map(s => s.trim()).filter(Boolean),
-      };
-      const res = await api.createJob(payload);
+      const formData = new FormData();
+      formData.append('title', newJobForm.title);
+      formData.append('description', newJobForm.description);
+      formData.append('recruiterId', user.recruiterProfile.id);
+      formData.append('requiredSkills', newJobForm.requiredSkills);
+      
+      if (newJobForm.jdMode === 'write' && newJobForm.jdText) {
+        formData.append('jdText', newJobForm.jdText);
+      } else if (newJobForm.jdMode === 'upload' && newJobForm.jdFile) {
+        formData.append('jdFile', newJobForm.jdFile);
+      }
+
+      const res = await api.createJob(formData);
       if (res.success) {
         setIsCreateJobOpen(false);
-        setNewJobForm({ title: '', description: '', requiredSkills: '' });
+        setNewJobForm({ title: '', description: '', requiredSkills: '', jdMode: 'write', jdText: '', jdFile: null });
         fetchJobs();
       }
     } catch (err) {
@@ -109,6 +191,34 @@ export function RecruiterView() {
     } finally {
       setCreatingJob(false);
     }
+  };
+
+  const [companyForm, setCompanyForm] = useState({ name: '', website: '', industry: '', location: '', description: '', size: '' });
+  const [updatingCompany, setUpdatingCompany] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  React.useEffect(() => {
+    if (company) {
+      setCompanyForm({
+        name: company.name || '',
+        website: company.website || '',
+        industry: company.industry || '',
+        location: company.location || '',
+        description: company.description || '',
+        size: company.size || ''
+      });
+    }
+  }, [company]);
+
+  const handleUpdateCompany = async (e) => {
+    e.preventDefault();
+    setUpdatingCompany(true);
+    const res = await updateMyCompany(companyForm);
+    if (res.success) {
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    }
+    setUpdatingCompany(false);
   };
 
   const selectedJob = jobs.find((j) => j.id === selectedJobId);
@@ -146,14 +256,14 @@ export function RecruiterView() {
         <div>
           <h1 className="text-lg font-semibold text-slate-900 tracking-tight">{activeNav}</h1>
           <p className="text-xs text-slate-400 mt-0.5">
-            {activeNav === 'Pipeline' && 'Candidate management & hiring workflow'}
+            {activeNav === 'Active Candidates' && 'Candidate management & hiring workflow'}
             {activeNav === 'Jobs' && 'Manage your job postings'}
             {activeNav === 'Candidates' && 'All candidates across positions'}
             {activeNav === 'Interns' && 'Manage active internships and key result areas'}
             {activeNav === 'Settings' && 'Account & preferences'}
           </p>
         </div>
-        {activeNav === 'Pipeline' && (
+        {activeNav === 'Active Candidates' && (
           <Button size="sm" onClick={() => setIsCreateJobOpen(true)} className="h-7 px-3 text-[11px] bg-slate-900 hover:bg-slate-800 text-white shadow-none">
             <Plus className="h-3 w-3 mr-1" />Post Job
           </Button>
@@ -162,8 +272,8 @@ export function RecruiterView() {
 
       <ErrorBanner error={error} onDismiss={clearError} />
 
-      {/* ──── Pipeline Tab ──── */}
-      {activeNav === 'Pipeline' && (
+      {/* ──── Active Candidates Tab ──── */}
+      {activeNav === 'Active Candidates' && (
       <>
       {/* Metric Cards */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -172,6 +282,7 @@ export function RecruiterView() {
           value={loadingJobs ? '—' : jobs.length}
           icon={BriefcaseBusiness}
           description="Active positions"
+          color="subtle-blue"
         />
         <MetricCard
           label="Applicants"
@@ -179,6 +290,7 @@ export function RecruiterView() {
           icon={Users}
           description="Total candidates"
           change={applicants.length > 0 ? `${applicants.length} received` : undefined}
+          color="light-blue"
         />
         <MetricCard
           label="Shortlisted"
@@ -187,6 +299,7 @@ export function RecruiterView() {
           description="Moved forward"
           change={shortlistedCount > 0 ? `${shortlistedCount} qualified` : undefined}
           trend={shortlistedCount > 0 ? 'up' : undefined}
+          color="light-green"
         />
         <MetricCard
           label="Avg. AI Score"
@@ -194,6 +307,7 @@ export function RecruiterView() {
             Math.round(applicants.filter(a => a.aiScore).reduce((sum, a) => sum + a.aiScore, 0) / (applicants.filter(a => a.aiScore).length || 1))}
           icon={BrainCircuit}
           description="Automated screening"
+          color="light-pink"
         />
       </div>
 
@@ -203,7 +317,7 @@ export function RecruiterView() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-400 mb-1">Active Pipeline</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-400 mb-1">Active Candidates</p>
                 <div className="relative">
                   <select
                     value={selectedJobId}
@@ -236,7 +350,20 @@ export function RecruiterView() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-[13px] font-semibold text-slate-800">Candidates</CardTitle>
-              <p className="text-[11px] text-slate-400 mt-0.5">Ranked by skill match &amp; AI screening</p>
+              <div className="flex items-center gap-2 mt-1.5">
+                <button
+                  onClick={() => setCandidateView('applied')}
+                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-colors ${candidateView === 'applied' ? 'bg-slate-800 text-white border-slate-800' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'}`}
+                >
+                  Applied Candidates
+                </button>
+                <button
+                  onClick={() => setCandidateView('sourcing')}
+                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-colors ${candidateView === 'sourcing' ? 'bg-slate-800 text-white border-slate-800' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'}`}
+                >
+                  Top Matches
+                </button>
+              </div>
             </div>
             <Button variant="outline" size="sm" onClick={() => fetchApplicants(selectedJobId)} disabled={loadingApplicants} className="h-7 px-2.5 text-[11px] border-slate-200 text-slate-500 hover:text-slate-800 shadow-none">
               <RefreshCw className={`h-3 w-3 mr-1 ${loadingApplicants ? 'animate-spin' : ''}`} />Refresh
@@ -244,9 +371,10 @@ export function RecruiterView() {
           </div>
         </CardHeader>
         <CardContent className="p-0 pt-3">
-          {loadingApplicants ? (
-            <SkeletonRows count={3} />
-          ) : applicants.length === 0 ? (
+          {candidateView === 'applied' && (
+            loadingApplicants ? (
+              <SkeletonRows count={3} />
+            ) : applicants.length === 0 ? (
             <EmptyState icon={Users} title="No applicants yet" subtitle="Candidates will appear here after applying" />
           ) : (
             <Table>
@@ -321,7 +449,19 @@ export function RecruiterView() {
                             </Button>
                           )}
                           {!['REJECTED', 'SELECTED'].includes(app.status) && (
-                            <Button variant="ghost" size="sm" disabled={isUpdating} onClick={() => { setActiveAppToSchedule(app); setIsScheduleModalOpen(true); }} className="h-6 px-2 text-[10px] text-slate-500 hover:text-slate-800 hover:bg-slate-100 shadow-none flex items-center gap-0.5">
+                            <Button variant="ghost" size="sm" disabled={isUpdating} onClick={() => { 
+                              if (app.status === 'SHORTLISTED') {
+                                alert("This candidate hasn't accepted the shortlist yet.");
+                                return;
+                              }
+                              if (app.status === 'APPLIED' || app.status === 'UNDER_REVIEW') {
+                                if (!window.confirm("This candidate hasn't been shortlisted or accepted yet. Schedule anyway?")) {
+                                  return;
+                                }
+                              }
+                              setActiveAppToSchedule(app); 
+                              setIsScheduleModalOpen(true); 
+                            }} className="h-6 px-2 text-[10px] text-slate-500 hover:text-slate-800 hover:bg-slate-100 shadow-none flex items-center gap-0.5">
                               <Calendar className="h-3 w-3" />Schedule
                             </Button>
                           )}
@@ -342,7 +482,59 @@ export function RecruiterView() {
                 })}
               </TableBody>
             </Table>
+          ))}
+          {candidateView === 'sourcing' && (
+            loadingTopCandidates ? (
+              <SkeletonRows count={3} />
+            ) : topCandidates.length === 0 ? (
+              <EmptyState icon={Sparkles} title="No top matches found" subtitle="Expand your job's required skills" />
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-slate-100 hover:bg-transparent">
+                    <TableHead className="h-8 text-[10px]">Candidate</TableHead>
+                    <TableHead className="h-8 text-[10px]">Institution</TableHead>
+                    <TableHead className="h-8 text-[10px] text-center">Match</TableHead>
+                    <TableHead className="h-8 text-[10px] text-right pr-4">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {topCandidates.map((c) => {
+                    return (
+                      <TableRow key={c.student.id} className="border-slate-50 hover:bg-slate-50/50">
+                        <TableCell className="py-2.5">
+                          <div className="flex items-center gap-2.5">
+                            <AvatarInitials name={c.student.fullName} />
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1">
+                                <p className="text-xs font-medium text-slate-800 truncate">{c.student.fullName}</p>
+                              </div>
+                              <p className="text-[10px] text-slate-300 font-mono truncate">{c.student.user?.email}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-2.5">
+                          <span className="text-xs text-slate-700 font-medium">{c.student.college || '—'}</span>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {c.student.skills?.slice(0, 3).map((sk, idx) => (
+                              <span key={idx} className="text-[9px] font-mono px-1 py-0 rounded border border-slate-100 bg-slate-50 text-slate-400">{sk}</span>
+                            ))}
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-2.5 text-center">{scoreBadge(c.skillBreakdown?.score || 0)}</TableCell>
+                        <TableCell className="py-2.5 text-right pr-4">
+                          <Button variant="ghost" size="sm" onClick={() => handleShortlistTopCandidate(c.student.id)} className="h-6 px-2 text-[10px] text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 shadow-none">
+                            <Plus className="h-3 w-3 mr-1" />Shortlist
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )
           )}
+
         </CardContent>
       </Card>
       </>
@@ -368,8 +560,8 @@ export function RecruiterView() {
                         <span className="font-mono">{job.requiredSkills?.length || 0} skills</span>
                       </div>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => { setSelectedJobId(job.id); setActiveNav('Pipeline'); }} className="h-6 px-2 text-[10px] text-slate-500 hover:text-slate-800 shadow-none">
-                      View Pipeline
+                    <Button variant="ghost" size="sm" onClick={() => { setSelectedJobId(job.id); setActiveNav('Active Candidates'); }} className="h-6 px-2 text-[10px] text-slate-500 hover:text-slate-800 shadow-none">
+                      View Candidates
                     </Button>
                   </div>
                 ))
@@ -492,7 +684,54 @@ export function RecruiterView() {
 
       {/* ──── Settings Tab ──── */}
       {activeNav === 'Settings' && (
-        <EmptyState icon={Settings} title="Settings" subtitle="Account settings will be available in a future update" />
+        <Card className="shadow-none border-slate-200 bg-white">
+          <CardHeader className="p-4 border-b border-slate-100">
+            <CardTitle className="text-[13px] font-semibold text-slate-800">Company Profile</CardTitle>
+            <p className="text-[11px] text-slate-400 mt-0.5">Update details about {company?.name || companyName}</p>
+          </CardHeader>
+          <CardContent className="p-4">
+            {loadingCompany ? (
+              <div className="flex items-center justify-center p-8">
+                <Loader2 className="w-5 h-5 text-slate-400 animate-spin" />
+              </div>
+            ) : (
+              <form onSubmit={handleUpdateCompany} className="max-w-2xl space-y-4">
+                <div>
+                  <label className="text-[11px] font-medium text-slate-600 block mb-1">Company Name</label>
+                  <Input required value={companyForm.name} onChange={(e) => setCompanyForm({...companyForm, name: e.target.value})} className="h-8 text-xs shadow-none border-slate-200" />
+                </div>
+                <div>
+                  <label className="text-[11px] font-medium text-slate-600 block mb-1">Website</label>
+                  <Input value={companyForm.website} onChange={(e) => setCompanyForm({...companyForm, website: e.target.value})} className="h-8 text-xs shadow-none border-slate-200" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[11px] font-medium text-slate-600 block mb-1">Industry</label>
+                    <Input value={companyForm.industry} onChange={(e) => setCompanyForm({...companyForm, industry: e.target.value})} className="h-8 text-xs shadow-none border-slate-200" />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-medium text-slate-600 block mb-1">Company Size</label>
+                    <Input value={companyForm.size} onChange={(e) => setCompanyForm({...companyForm, size: e.target.value})} className="h-8 text-xs shadow-none border-slate-200" placeholder="e.g. 50-200 employees" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[11px] font-medium text-slate-600 block mb-1">Location</label>
+                  <Input value={companyForm.location} onChange={(e) => setCompanyForm({...companyForm, location: e.target.value})} className="h-8 text-xs shadow-none border-slate-200" />
+                </div>
+                <div>
+                  <label className="text-[11px] font-medium text-slate-600 block mb-1">Description</label>
+                  <textarea rows={4} value={companyForm.description} onChange={(e) => setCompanyForm({...companyForm, description: e.target.value})} className="w-full border border-slate-200 rounded-md px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-slate-300 resize-none" />
+                </div>
+                <div className="pt-2 flex items-center gap-3">
+                  <Button type="submit" disabled={updatingCompany} className="h-8 px-4 text-xs bg-slate-900 text-white hover:bg-slate-800 shadow-none">
+                    {updatingCompany ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : 'Save Changes'}
+                  </Button>
+                  {saveSuccess && <span className="text-xs text-emerald-600 flex items-center"><ShieldCheck className="w-3 h-3 mr-1" />Saved</span>}
+                </div>
+              </form>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {/* Feedback Sheet */}
@@ -563,8 +802,50 @@ export function RecruiterView() {
               <Input type="text" required value={newJobForm.title} onChange={(e) => setNewJobForm({...newJobForm, title: e.target.value})} className="h-8 text-xs shadow-none border-slate-200 focus-visible:ring-1 focus-visible:ring-slate-300" placeholder="e.g. Senior Frontend Engineer" />
             </div>
             <div className="space-y-1.5">
-              <label className="text-[11px] font-medium text-slate-600">Description</label>
-              <textarea required rows={4} value={newJobForm.description} onChange={(e) => setNewJobForm({...newJobForm, description: e.target.value})} className="w-full border border-slate-200 rounded-md px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-slate-300 resize-none" placeholder="Job description and requirements…" />
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-[11px] font-medium text-slate-600">Job Description</label>
+                <div className="flex bg-slate-100 rounded-md p-0.5">
+                  <button type="button" onClick={() => setNewJobForm({...newJobForm, jdMode: 'write', jdFile: null})} className={`px-2 py-1 text-[10px] rounded-sm font-medium ${newJobForm.jdMode === 'write' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'}`}>Write JD</button>
+                  <button type="button" onClick={() => setNewJobForm({...newJobForm, jdMode: 'upload', jdText: ''})} className={`px-2 py-1 text-[10px] rounded-sm font-medium ${newJobForm.jdMode === 'upload' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'}`}>Upload JD</button>
+                </div>
+              </div>
+              
+              {newJobForm.jdMode === 'write' ? (
+                <div className="relative">
+                  <textarea required rows={6} value={newJobForm.jdText} onChange={(e) => setNewJobForm({...newJobForm, jdText: e.target.value})} className="w-full border border-slate-200 rounded-md px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-slate-300 resize-none" placeholder="Paste or write the complete Job Description here..." />
+                  {newJobForm.jdText && (
+                    <div className="absolute bottom-2 right-2">
+                      <Button type="button" size="sm" variant="secondary" onClick={() => handleParseJD('write', newJobForm.jdText)} disabled={isParsingJd} className="h-6 text-[10px] px-2 shadow-sm">
+                        {isParsingJd ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                        Auto-Fill from Text
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="border border-dashed border-slate-300 rounded-md p-4 flex flex-col items-center justify-center text-center">
+                  {newJobForm.jdFile ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-slate-700">{newJobForm.jdFile.name}</span>
+                        <button type="button" onClick={() => setNewJobForm({...newJobForm, jdFile: null})} className="text-red-500 hover:text-red-700 text-xs font-medium" disabled={isParsingJd}>Remove</button>
+                      </div>
+                      {isParsingJd && <span className="text-[10px] text-slate-500 flex items-center"><Loader2 className="h-3 w-3 animate-spin mr-1" /> Analyzing document...</span>}
+                    </div>
+                  ) : (
+                    <>
+                      <input type="file" id="jdUpload" accept=".pdf,.doc,.docx" className="hidden" onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          setNewJobForm({...newJobForm, jdFile: file});
+                          handleParseJD('upload', file);
+                        }
+                      }} disabled={isParsingJd} />
+                      <label htmlFor="jdUpload" className={`cursor-pointer text-xs font-medium ${isParsingJd ? 'text-slate-400' : 'text-indigo-600 hover:text-indigo-700'}`}>Click to select PDF/DOC/DOCX file</label>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
             <div className="space-y-1.5">
               <label className="text-[11px] font-medium text-slate-600">Required Skills</label>

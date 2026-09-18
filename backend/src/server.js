@@ -12,6 +12,7 @@ import adminRoutes from './routes/adminRoutes.js';
 import healthRoutes from './routes/healthRoutes.js';
 import internshipRoutes from './routes/internshipRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
+import companyRoutes from './routes/companyRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -42,6 +43,7 @@ app.use('/api/v1/applications', applicationRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/internships', internshipRoutes);
 app.use('/api/v1/settings', settingsRoutes);
+app.use('/api/v1/companies', companyRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found` });
