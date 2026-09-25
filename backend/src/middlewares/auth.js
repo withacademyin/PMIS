@@ -20,6 +20,24 @@ export async function requireAuth(req, res, next) {
         id: true,
         email: true,
         role: true,
+        workerProfile: {
+          select: {
+            id: true,
+            fullName: true,
+            trade: true,
+            itiId: true,
+            isVerified: true,
+          },
+        },
+        officerProfile: {
+          select: {
+            id: true,
+            name: true,
+            district: true,
+            department: true,
+            isVerified: true,
+          },
+        },
       },
     });
 
@@ -33,6 +51,27 @@ export async function requireAuth(req, res, next) {
     return res.status(401).json({ success: false, message: 'Not authorized to access, token failed' });
   }
 }
+
+export function requireRole(...roles) {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Not authenticated' });
+    }
+    const userRole = req.user.role?.toUpperCase();
+    const normalizedRoles = roles.map(r => r.toUpperCase());
+    if (!normalizedRoles.includes(userRole)) {
+      return res.status(403).json({
+        success: false,
+        message: `Forbidden: role '${userRole}' does not have required permissions (${normalizedRoles.join(', ')})`,
+      });
+    }
+    next();
+  };
+}
+
+export const requireAdmin = requireRole('ADMIN');
+export const requireOfficer = requireRole('OFFICER', 'ADMIN');
+export const requireWorker = requireRole('WORKER', 'ADMIN');
 
 export async function optionalAuth(req, res, next) {
   try {
@@ -51,6 +90,8 @@ export async function optionalAuth(req, res, next) {
         id: true,
         email: true,
         role: true,
+        workerProfile: true,
+        officerProfile: true,
       },
     });
 

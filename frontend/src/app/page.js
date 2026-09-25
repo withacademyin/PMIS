@@ -18,10 +18,10 @@ export default function LandingPage() {
   useEffect(() => {
     if (!loading && user) {
       const role = user.role?.toLowerCase();
-      if ((role === 'learner' || role === 'student') && !user.profileCompleted) {
-        router.replace('/onboarding/student');
+      if ((role === 'worker') && !user.profileCompleted) {
+        router.replace('/onboarding/worker');
       } else {
-        const dashRoute = (role === 'learner' || role === 'student') ? 'student' : role;
+        const dashRoute = (role === 'worker') ? 'worker' : role;
         router.replace(`/dashboard/${dashRoute}`);
       }
     }
@@ -45,8 +45,8 @@ export default function LandingPage() {
             <Hero />
           </div>
           <div className="w-full py-20 pb-32 flex flex-col items-center justify-center overflow-hidden">
-            <h2 className="text-3xl font-bold text-slate-900 mb-4 text-center px-4">Loved by Students and Recruiters</h2>
-            <p className="text-slate-500 text-center mb-12 max-w-2xl mx-auto px-4">See how TalentPortal is transforming the internship search and hiring process with deep profile matching.</p>
+            <h2 className="text-3xl font-bold text-slate-900 mb-4 text-center px-4">Trusted by Workers and Nodal Officers</h2>
+            <p className="text-slate-500 text-center mb-12 max-w-2xl mx-auto px-4">See how ITIPortal is transforming the ITI hiring process with deep profile matching and spatial search.</p>
             <div className="w-full">
               <Testimonials />
             </div>
@@ -96,10 +96,10 @@ export default function LandingPage() {
           <div className="pt-8 border-t border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-2">
               <Logo className="h-6 w-6" />
-              <span className="font-semibold text-slate-900 text-sm">TalentPortal</span>
+              <span className="font-semibold text-slate-900 text-sm">ITIPortal</span>
             </div>
             <p className="text-sm text-slate-500">
-              © {new Date().getFullYear()} TalentPortal Inc. All rights reserved.
+              © {new Date().getFullYear()} ITIPortal Inc. All rights reserved.
             </p>
           </div>
         </div>

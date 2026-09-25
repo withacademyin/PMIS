@@ -11,10 +11,10 @@ const AuthContext = createContext();
  */
 function getDashboardRoute(role) {
   const r = role?.toLowerCase();
-  if (r === 'learner' || r === 'student') return 'student';
-  if (r === 'recruiter') return 'recruiter';
+  if (r === 'worker') return 'worker';
+  if (r === 'officer') return 'officer';
   if (r === 'admin') return 'admin';
-  return 'student'; // fallback
+  return 'worker'; // fallback
 }
 
 export function AuthProvider({ children }) {
@@ -30,8 +30,13 @@ export function AuthProvider({ children }) {
     const storedUser = localStorage.getItem('hiring_portal_user');
     
     if (storedToken && storedUser) {
-      setUser(JSON.parse(storedUser));
-      setToken(storedToken);
+      try {
+        setUser(JSON.parse(storedUser));
+        setToken(storedToken);
+      } catch (e) {
+        localStorage.removeItem('hiring_portal_user');
+        localStorage.removeItem('hiring_portal_token');
+      }
     }
     setLoading(false);
   }, []);
@@ -45,8 +50,8 @@ export function AuthProvider({ children }) {
       localStorage.setItem('hiring_portal_user', JSON.stringify(data.user));
 
       const role = data.user.role?.toLowerCase();
-      if ((role === 'learner' || role === 'student') && !data.user.profileCompleted) {
-        router.push('/onboarding/student');
+      if ((role === 'worker') && !data.user.profileCompleted) {
+        router.push('/onboarding/worker');
       } else {
         router.push(`/dashboard/${getDashboardRoute(data.user.role)}`);
       }
@@ -54,8 +59,16 @@ export function AuthProvider({ children }) {
     return data;
   };
 
-  const signup = async (name, email, password, role) => {
-    const data = await api.register({ name, email, password, role });
+  const signup = async (payload) => {
+    // Accept either an object or arguments (name, email, password, role)
+    const registerData = typeof payload === 'object' && !payload.preventDefault ? payload : {
+      name: arguments[0],
+      email: arguments[1],
+      password: arguments[2],
+      role: arguments[3],
+    };
+
+    const data = await api.register(registerData);
     if (data.success) {
       setUser(data.user);
       setToken(data.token);
@@ -63,8 +76,8 @@ export function AuthProvider({ children }) {
       localStorage.setItem('hiring_portal_user', JSON.stringify(data.user));
 
       const userRole = data.user.role?.toLowerCase();
-      if ((userRole === 'learner' || userRole === 'student') && !data.user.profileCompleted) {
-        router.push('/onboarding/student');
+      if ((userRole === 'worker') && !data.user.profileCompleted) {
+        router.push('/onboarding/worker');
       } else {
         router.push(`/dashboard/${getDashboardRoute(data.user.role)}`);
       }
@@ -73,19 +86,16 @@ export function AuthProvider({ children }) {
   };
 
   const completeOnboarding = (data) => {
-    // Nest the data inside studentProfile so the dashboard can read it
     const updatedUser = {
       ...user,
       profileCompleted: true,
-      studentProfile: {
-        ...(user.studentProfile || {}),
+      workerProfile: {
+        ...(user.workerProfile || {}),
         fullName: user.name || user.email?.split('@')[0] || 'User',
-        college: data.institute || 'University',
+        trade: data.trade || user.workerProfile?.trade || 'General',
         skills: data.skills ? data.skills.split(',').map(s => s.trim()) : [],
         isVerified: true,
-        skillScores: data.skillScores || user.studentProfile?.skillScores || {},
-        lastAssessmentAt: data.lastAssessmentAt || user.studentProfile?.lastAssessmentAt || null,
-      }
+      },
     };
     setUser(updatedUser);
     localStorage.setItem('hiring_portal_user', JSON.stringify(updatedUser));
@@ -93,17 +103,13 @@ export function AuthProvider({ children }) {
   };
 
   const updateProfile = (data) => {
-    // Only update memory and local storage, backend is already updated via API
     const updatedUser = {
       ...user,
       profileCompleted: true,
-      studentProfile: {
-        ...(user.studentProfile || {}),
-        fullName: user.name || user.email?.split('@')[0] || 'User',
-        college: data.institute || user.studentProfile?.college || 'University',
-        skills: data.skills ? data.skills.split(',').map(s => s.trim()) : user.studentProfile?.skills || [],
-        isVerified: true,
-      }
+      workerProfile: {
+        ...(user.workerProfile || {}),
+        ...data,
+      },
     };
     setUser(updatedUser);
     localStorage.setItem('hiring_portal_user', JSON.stringify(updatedUser));

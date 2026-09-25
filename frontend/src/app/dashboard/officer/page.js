@@ -2,27 +2,25 @@
 
 import React, { useEffect } from 'react';
 import Navbar from '@/components/Navbar';
-import LearnerView from '@/views/LearnerView';
+import OfficerView from '@/views/OfficerView';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 
-export default function StudentDashboard() {
+export default function OfficerDashboard() {
   const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!loading) {
       if (!user) {
-        router.replace('/auth/login?role=learner');
-      } else if (user.role.toLowerCase() !== 'learner' && user.role.toLowerCase() !== 'student') {
+        router.replace('/auth/login?role=officer');
+      } else if (user.role.toLowerCase() !== 'officer') {
         router.replace('/');
-      } else if (!user.profileCompleted) {
-        router.replace('/onboarding/student');
       }
     }
   }, [user, loading, router]);
 
-  if (loading || !user || (user.role.toLowerCase() !== 'learner' && user.role.toLowerCase() !== 'student') || !user.profileCompleted) {
+  if (loading || !user || user.role.toLowerCase() !== 'officer') {
     return null;
   }
 
@@ -30,7 +28,7 @@ export default function StudentDashboard() {
     <div className="min-h-screen flex flex-col bg-white">
       <Navbar />
       <main className="flex-1">
-        <LearnerView />
+        <OfficerView />
       </main>
     </div>
   );

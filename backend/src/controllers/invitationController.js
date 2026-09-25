@@ -1,43 +1,37 @@
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import prisma from '../config/prisma.js';
-import { sendRecruiterInvitation } from '../services/emailService.js';
+import { sendOfficerInvitation } from '../services/emailService.js';
 
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 
 /**
- * Admin invites a recruiter to a company
+ * Admin invites an officer to a District Node
  */
-export const inviteRecruiter = async (req, res) => {
+export const inviteOfficer = async (req, res) => {
   try {
     if (req.user.role !== 'ADMIN') {
-      return res.status(403).json({ success: false, message: 'Forbidden' });
+      return res.status(403).json({ success: false, message: 'Forbidden: Admins only' });
     }
 
-    const { companyId } = req.params;
-    const { email } = req.body;
+    const { district, email } = req.body;
 
-    if (!email) {
-      return res.status(400).json({ success: false, message: 'Email is required' });
-    }
-
-    const company = await prisma.company.findUnique({ where: { id: companyId } });
-    if (!company) {
-      return res.status(404).json({ success: false, message: 'Company not found' });
+    if (!email || !district) {
+      return res.status(400).json({ success: false, message: 'Email and district are required' });
     }
 
     // Check if the user already exists
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
-      return res.status(400).json({ success: false, message: 'User already exists' });
+      return res.status(400).json({ success: false, message: 'User already exists with this email' });
     }
 
-    // Check for pending invitations
-    const existingInvitation = await prisma.recruiterInvitation.findFirst({
-      where: { email, status: 'PENDING', companyId }
+    // Check for pending invitations for this email in this district
+    const existingInvitation = await prisma.officerInvitation.findFirst({
+      where: { email, status: 'PENDING', district }
     });
     if (existingInvitation) {
-      return res.status(400).json({ success: false, message: 'Invitation already pending for this email' });
+      return res.status(400).json({ success: false, message: 'Invitation already pending for this email in this district' });
     }
 
     // Generate secure token
@@ -46,9 +40,9 @@ export const inviteRecruiter = async (req, res) => {
     
     const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48 hours
 
-    const invitation = await prisma.recruiterInvitation.create({
+    const invitation = await prisma.officerInvitation.create({
       data: {
-        companyId,
+        district,
         email,
         tokenHash,
         invitedBy: req.user.id,
@@ -56,38 +50,43 @@ export const inviteRecruiter = async (req, res) => {
       },
     });
 
-    const inviteLink = `${CLIENT_URL}/auth/accept-invite?token=${token}&email=${encodeURIComponent(email)}`;
+    const inviteLink = `${CLIENT_URL}/auth/signup?token=${token}`;
+    
+    console.log(`\n\n=== INVITATION LINK FOR ${email} in ${district} ===\n${inviteLink}\n====================================\n`);
 
-    await sendRecruiterInvitation(email, company.name, inviteLink);
+    try {
+      await sendOfficerInvitation(email, district, inviteLink);
+    } catch (e) {
+      console.warn("Failed to send email, but invite created. Error: ", e);
+    }
 
-    return res.status(201).json({ success: true, message: 'Invitation sent successfully', invitationId: invitation.id });
+    return res.status(201).json({ success: true, message: 'Invitation sent successfully', invitationId: invitation.id, inviteLink });
   } catch (error) {
-    console.error('Error inviting recruiter:', error);
+    console.error('Error inviting officer:', error);
     return res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
 /**
- * Public endpoint for accepting recruiter invitation
+ * Public endpoint for accepting officer invitation
  */
 export const acceptInvitation = async (req, res) => {
   try {
-    const { email, token, password, name } = req.body;
+    const { email, token, password, name, department } = req.body;
 
     if (!email || !token || !password || !name) {
-      return res.status(400).json({ success: false, message: 'Missing required fields' });
+      return res.status(400).json({ success: false, message: 'Missing required fields: email, token, password, and name are required' });
     }
 
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
-    const invitation = await prisma.recruiterInvitation.findFirst({
+    const invitation = await prisma.officerInvitation.findFirst({
       where: {
         email,
         tokenHash,
         status: 'PENDING',
         expiresAt: { gt: new Date() }
-      },
-      include: { company: true }
+      }
     });
 
     if (!invitation) {
@@ -96,25 +95,26 @@ export const acceptInvitation = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Use a Prisma transaction to ensure Atomicity
     const result = await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
           email,
           password: hashedPassword,
-          role: 'RECRUITER',
+          role: 'OFFICER',
         },
       });
 
-      const recruiterProfile = await tx.recruiterProfile.create({
+      const officerProfile = await tx.officerProfile.create({
         data: {
           userId: user.id,
-          companyName: invitation.company.name,
-          companyId: invitation.companyId,
+          name: name,
+          district: invitation.district,
+          department: department || null,
+          isVerified: true,
         },
       });
 
-      await tx.recruiterInvitation.update({
+      await tx.officerInvitation.update({
         where: { id: invitation.id },
         data: {
           status: 'ACCEPTED',
@@ -122,10 +122,10 @@ export const acceptInvitation = async (req, res) => {
         },
       });
 
-      return { user, recruiterProfile };
+      return { user, officerProfile };
     });
 
-    return res.status(200).json({ success: true, message: 'Invitation accepted. You can now log in.' });
+    return res.status(200).json({ success: true, message: 'Invitation accepted. You can now log in as Nodal Officer.' });
   } catch (error) {
     console.error('Error accepting invitation:', error);
     return res.status(500).json({ success: false, message: 'Server error' });
