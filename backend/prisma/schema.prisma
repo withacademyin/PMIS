@@ -2,7 +2,7 @@ datasource db {
   provider   = "postgresql"
   url        = env("DATABASE_URL")
   directUrl  = env("DIRECT_URL")
-  extensions = [vector]
+  extensions = [vector, postgis]
 }
 
 generator client {
@@ -11,151 +11,173 @@ generator client {
 }
 
 enum Role {
-  LEARNER
-  RECRUITER
+  WORKER
+  OFFICER
   ADMIN
 }
 
-enum RecruiterInvitationStatus {
+enum OfficerInvitationStatus {
   PENDING
   ACCEPTED
   EXPIRED
   REVOKED
 }
 
-enum ApplicationStatus {
-  APPLIED
-  UNDER_REVIEW
+enum ShortlistStatus {
   SHORTLISTED
   INTERVIEW_SCHEDULED
   SELECTED
-  REJECTED
   ACCEPTED
+  REJECTED
+}
+
+enum PlacementStatus {
+  ONBOARDING
+  ACTIVE
+  COMPLETED
+  CANCELLED
 }
 
 model SystemSettings {
   id                  Int      @id @default(1)
-  allowedColleges     String[] @default([])
-  allowedCourses      String[] @default([])
+  allowedITIs         String[] @default([])
+  allowedTrades       String[] @default([])
   allowedEmailDomains String[] @default([])
   updatedAt           DateTime @updatedAt
 }
 
 model User {
-  id               String            @id @default(uuid())
-  email            String            @unique
-  password         String
-  role             Role              @default(LEARNER)
-  createdAt        DateTime          @default(now())
-  studentProfile   StudentProfile?
-  recruiterProfile RecruiterProfile?
+  id             String          @id @default(uuid())
+  email          String          @unique
+  password       String
+  role           Role            @default(WORKER)
+  createdAt      DateTime        @default(now())
+  workerProfile  WorkerProfile?
+  officerProfile OfficerProfile?
 }
 
-model Company {
-  id          String             @id @default(uuid())
-  name        String
-  website     String?
-  industry    String?
-  location    String?
-  description String?
-  logoUrl     String?
-  size        String?
-  status      String             @default("ACTIVE")
-  recruiters  RecruiterProfile[]
-  invitations RecruiterInvitation[]
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
+model ITI {
+  id           String                               @id @default(uuid())
+  name         String
+  code         String?
+  district     String
+  state        String
+  isGovernment Boolean                              @default(true)
+  location     Unsupported("geography(Point,4326)")?
+  description  String?
+  status       String                               @default("ACTIVE")
+  workers      WorkerProfile[]
+  createdAt    DateTime                             @default(now())
+  updatedAt    DateTime                             @updatedAt
 }
 
-model StudentProfile {
-  id               String         @id @default(uuid())
-  userId           String         @unique
-  user             User           @relation(fields: [userId], references: [id])
-  fullName         String
-  college          String
-  degree           String?
-  graduationYear   Int?
-  isVerified       Boolean        @default(false)
-  skills           String[]
-  skillScores      Json           @default("{}")
-  cheatingFlags    Int            @default(0)
-  lastAssessmentAt DateTime?
-  languages        String[]
-  projectTypes     String[]
-  certifications   String[]
-  resumeUrl        String?
-  contextBlob      String?
-  applications     Application[]
-  studentSkills    StudentSkill[]
+model WorkerProfile {
+  id                 String                               @id @default(uuid())
+  userId             String                               @unique
+  user               User                                 @relation(fields: [userId], references: [id])
+  fullName           String
+  itiId              String?
+  iti                ITI?                                 @relation(fields: [itiId], references: [id])
+  trade              String
+  certificationGrade String?
+  location           Unsupported("geography(Point,4326)")?
+  availabilityStatus String                               @default("AVAILABLE")
+  experienceYears    Int                                  @default(0)
+  isVerified         Boolean                              @default(false)
+  skills             String[]
+  skillScores        Json                                 @default("{}")
+  cheatingFlags      Int                                  @default(0)
+  lastAssessmentAt   DateTime?
+  languages          String[]
+  certifications     String[]
+  resumeUrl          String?
+  contextBlob        String?
+  shortlists         Shortlist[]
+  workerSkills       WorkerSkill[]
+  createdAt          DateTime                             @default(now())
+  updatedAt          DateTime                             @updatedAt
 }
 
-model RecruiterProfile {
-  id          String       @id @default(uuid())
-  userId      String       @unique
-  user        User         @relation(fields: [userId], references: [id])
-  companyName String
-  companyId   String?
-  company     Company?     @relation(fields: [companyId], references: [id])
-  isVerified  Boolean      @default(true)
-  jobs        JobListing[]
+model OfficerProfile {
+  id           String            @id @default(uuid())
+  userId       String            @unique
+  user         User              @relation(fields: [userId], references: [id])
+  name         String?
+  district     String
+  department   String?
+  isVerified   Boolean           @default(true)
+  requirements WorkRequirement[]
+  shortlists   Shortlist[]
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
 }
 
-model RecruiterInvitation {
-  id          String    @id @default(uuid())
-  companyId   String
-  company     Company   @relation(fields: [companyId], references: [id])
-  email       String
-  role        Role      @default(RECRUITER)
-  tokenHash   String
-  status      RecruiterInvitationStatus @default(PENDING)
-  invitedBy   String
-  expiresAt   DateTime
-  acceptedAt  DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+model OfficerInvitation {
+  id         String                  @id @default(uuid())
+  district   String
+  email      String
+  role       Role                    @default(OFFICER)
+  tokenHash  String
+  status     OfficerInvitationStatus @default(PENDING)
+  invitedBy  String
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  createdAt  DateTime                @default(now())
+  updatedAt  DateTime                @updatedAt
 }
 
-model JobListing {
-  id             String           @id @default(uuid())
-  title          String
-  description    String
-  jdText         String?
-  recruiterId    String
-  recruiter      RecruiterProfile @relation(fields: [recruiterId], references: [id])
-  requiredSkills String[]
-  applications   Application[]
-  createdAt      DateTime         @default(now())
+model WorkRequirement {
+  id            String         @id @default(uuid())
+  title         String
+  description   String
+  jdText        String?
+  officerId     String
+  officer       OfficerProfile @relation(fields: [officerId], references: [id])
+  requiredTrade String
+  shortlists    Shortlist[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 }
 
-model Application {
-  id            String            @id @default(uuid())
-  studentId     String
-  student       StudentProfile    @relation(fields: [studentId], references: [id])
-  jobId         String
-  job           JobListing        @relation(fields: [jobId], references: [id])
-  status        ApplicationStatus @default(APPLIED)
+model Shortlist {
+  id            String           @id @default(uuid())
+  workerId      String
+  worker        WorkerProfile    @relation(fields: [workerId], references: [id])
+  officerId     String
+  officer       OfficerProfile   @relation(fields: [officerId], references: [id])
+  requirementId String?
+  requirement   WorkRequirement? @relation(fields: [requirementId], references: [id])
+  status        ShortlistStatus  @default(SHORTLISTED)
   matchScore    Float?
-  aiScore       Float?
-  aiFeedback    String?
-  interviewDate DateTime?
-  interviewLink String?
-  appliedAt     DateTime          @default(now())
-  internship    Internship?
+  distanceM     Float?
+  notes         String?
+  shortlistedAt DateTime         @default(now())
+  placement     Placement?
+}
 
-  @@unique([studentId, jobId])
+model Placement {
+  id          String          @id @default(uuid())
+  shortlistId String          @unique
+  shortlist   Shortlist       @relation(fields: [shortlistId], references: [id])
+  startDate   DateTime
+  endDate     DateTime?
+  status      PlacementStatus @default(ACTIVE)
+  notes       String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 }
 
 model AuditLog {
-  id          String   @id @default(uuid())
-  actor       String
-  action      String
-  entity      String
-  entityId    String
-  metadata    Json?
-  timestamp   DateTime @default(now())
+  id        String   @id @default(uuid())
+  actor     String
+  action    String
+  entity    String
+  entityId  String
+  metadata  Json?
+  timestamp DateTime @default(now())
 }
 
-model CanonicalEntity {
+model TradeSkill {
   id             Int                    @id @default(autoincrement())
   canonical_name String
   type           String // skill, language, project_type, certification
@@ -164,90 +186,17 @@ model CanonicalEntity {
   aliases        String[]
   embedding      Unsupported("vector")?
   is_active      Boolean                @default(true)
-  studentSkills  StudentSkill[]
+  workerSkills   WorkerSkill[]
 }
 
-model StudentSkill {
-  id         Int             @id @default(autoincrement())
-  studentId  String
-  student    StudentProfile  @relation(fields: [studentId], references: [id])
-  entityId   Int
-  entity     CanonicalEntity @relation(fields: [entityId], references: [id])
-  status     String
-  confidence Float
-  evidence   String?
-  source     String
-}
-
-enum InternshipStatus {
-  ONBOARDING
-  ACTIVE
-  COMPLETED
-  CANCELLED
-}
-
-enum KRAStatus {
-  NOT_STARTED
-  IN_PROGRESS
-  BLOCKED
-  SUBMITTED
-  UNDER_REVIEW
-  APPROVED
-  CHANGES_REQUESTED
-}
-
-enum KRAPriority {
-  LOW
-  MEDIUM
-  HIGH
-  CRITICAL
-}
-
-model Internship {
-  id            String           @id @default(uuid())
-  applicationId String           @unique
-  application   Application      @relation(fields: [applicationId], references: [id])
-  startDate     DateTime
-  endDate       DateTime?
-  status        InternshipStatus @default(ONBOARDING)
-  kras          KRA[]
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
-}
-
-model KRA {
-  id            String        @id @default(uuid())
-  internshipId  String
-  internship    Internship    @relation(fields: [internshipId], references: [id])
-  title         String
-  description   String?
-  startDate     DateTime
-  dueDate       DateTime
-  status        KRAStatus     @default(NOT_STARTED)
-  priority      KRAPriority   @default(MEDIUM)
-  progress      Int           @default(0)
-  items         KRAItem[]
-  submissions   KRASubmission[]
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-}
-
-model KRAItem {
-  id          String   @id @default(uuid())
-  kraId       String
-  kra         KRA      @relation(fields: [kraId], references: [id])
-  title       String
-  completed   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model KRASubmission {
-  id          String   @id @default(uuid())
-  kraId       String
-  kra         KRA      @relation(fields: [kraId], references: [id])
-  evidenceUrl String
-  notes       String?
-  status      String   @default("SUBMITTED") // SUBMITTED, APPROVED, REJECTED
-  createdAt   DateTime @default(now())
+model WorkerSkill {
+  id           Int           @id @default(autoincrement())
+  workerId     String
+  worker       WorkerProfile @relation(fields: [workerId], references: [id])
+  tradeSkillId Int
+  tradeSkill   TradeSkill    @relation(fields: [tradeSkillId], references: [id])
+  status       String
+  confidence   Float
+  evidence     String?
+  source       String
 }

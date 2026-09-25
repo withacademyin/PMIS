@@ -12,8 +12,8 @@ import { Button } from '@/components/ui/button';
  */
 function getDashboardPath(role) {
   const r = role?.toLowerCase();
-  if (r === 'learner' || r === 'student') return '/dashboard/student';
-  if (r === 'recruiter') return '/dashboard/recruiter';
+  if (r === 'worker' || r === 'student') return '/dashboard/worker';
+  if (r === 'officer' || r === 'recruiter') return '/dashboard/officer';
   if (r === 'admin') return '/dashboard/admin';
   return '/';
 }
@@ -24,87 +24,78 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200/80 bg-white/80 backdrop-blur-md">
-      <div className="w-full max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
+      <div className="w-full max-w-7xl mx-auto px-6 h-25 flex items-center justify-between">
 
         {/* ── Left: Brand ── */}
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center gap-2.5">
-            <Logo className="w-7 h-7 rounded-md object-contain" />
-            <span className="text-sm font-bold text-slate-950 tracking-tight">
-              Talent<span className="text-[#4CAF50]">Portal</span>
-            </span>
+            <Logo className="h-10 w-auto object-contain" />
           </Link>
         </div>
 
         {/* ── Center: Navigation ── */}
-        <nav className="hidden md:flex items-center gap-1 text-xs font-medium text-slate-500">
+        <nav className="hidden md:flex items-center gap-2 text-sm font-medium text-slate-500">
           {!loading && user ? (
             <>
               {/* Dashboard link — correct for every role */}
               <Link
                 href={getDashboardPath(role)}
-                className="px-3 py-1.5 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                className="px-4 py-2 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors"
               >
                 Dashboard
               </Link>
 
               {/* Role-specific links */}
-              {(role === 'learner' || role === 'student') && (
+              {(role === 'worker' || role === 'student') && (
                 <Link
-                  href="/dashboard/student"
-                  className="px-3 py-1.5 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                  href="/dashboard/worker"
+                  className="px-4 py-2 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors"
                 >
-                  Applications
+                  My Profile & Trade
                 </Link>
               )}
-              {role === 'recruiter' && (
-                <Link
-                  href="/dashboard/recruiter"
-                  className="px-3 py-1.5 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors"
-                >
-                  Manage Roles
-                </Link>
+              {(role === 'officer' || role === 'recruiter') && (
+                <>
+                  <Link
+                    href="/dashboard/officer"
+                    className="px-4 py-2 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                  >
+                    Worker Radius Search
+                  </Link>
+                </>
               )}
               {role === 'admin' && (
                 <Link
                   href="/dashboard/admin"
-                  className="px-3 py-1.5 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                  className="px-4 py-2 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors"
                 >
-                  Verification
+                  Admin Verification
                 </Link>
               )}
             </>
           ) : (
             !loading && (
-              <>
-                <Link href="/how-it-works" className="px-3 py-1.5 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors">
-                  How It Works
-                </Link>
-                <Link href="/auth/signup?role=learner" className="px-3 py-1.5 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors">
-                  Explore Roles
-                </Link>
-                <Link href="/auth/signup?role=recruiter" className="px-3 py-1.5 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors">
-                  For Employers
-                </Link>
-              </>
+              <Link href="/auth/signup?role=worker" className="px-4 py-2 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                For Workers
+              </Link>
             )
           )}
         </nav>
 
         {/* ── Right: User Actions ── */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           {!loading && user ? (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               {/* Avatar with proper fallback for all roles */}
-              <div className="hidden md:flex items-center gap-2.5 border-r border-slate-200 pr-3">
-                <div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-[10px] font-semibold text-slate-600 tracking-wider">
+              <div className="hidden md:flex items-center gap-3 border-r border-slate-200 pr-4">
+                <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-sm font-semibold text-slate-600 tracking-wider">
                   {(() => {
                     if (role === 'admin') {
-                      return <ShieldCheck className="w-3.5 h-3.5 text-slate-500" strokeWidth={1.75} />;
+                      return <ShieldCheck className="w-5 h-5 text-slate-500" strokeWidth={1.75} />;
                     }
                     const name =
-                      user?.studentProfile?.fullName ||
-                      user?.recruiterProfile?.companyName ||
+                      user?.workerProfile?.fullName ||
+                      user?.officerProfile?.name ||
                       user?.name ||
                       user?.email;
                     if (!name) return <User className="w-3.5 h-3.5 text-slate-500" strokeWidth={1.75} />;
@@ -116,24 +107,24 @@ export function Navbar() {
                   })()}
                 </div>
                 <div className="hidden lg:block">
-                  <p className="text-[11px] font-medium text-slate-700 leading-none">
+                  <p className="text-sm font-medium text-slate-700 leading-none">
                     {role === 'admin'
                       ? 'Admin'
-                      : user?.studentProfile?.fullName ||
-                        user?.recruiterProfile?.companyName ||
+                      : user?.workerProfile?.fullName ||
+                        user?.officerProfile?.name ||
                         user?.name ||
                         user?.email?.split('@')[0]}
                   </p>
-                  <p className="text-[10px] text-slate-400 mt-0.5 capitalize">{role}</p>
+                  <p className="text-xs text-slate-400 mt-1 capitalize">{role}</p>
                 </div>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={logout}
-                className="h-7 text-[11px] text-slate-400 hover:text-slate-800 px-2"
+                className="h-10 text-sm text-slate-400 hover:text-slate-800 px-3"
               >
-                <LogOut className="h-3.5 w-3.5 mr-1.5" />
+                <LogOut className="h-4 w-4 mr-2" />
                 Logout
               </Button>
             </div>
@@ -142,13 +133,13 @@ export function Navbar() {
               <>
                 <Link
                   href="/auth/login"
-                  className="text-xs font-medium text-slate-600 hover:text-slate-900 px-3 py-1.5 transition-colors"
+                  className="text-sm font-medium text-slate-600 hover:text-slate-900 px-4 py-2 transition-colors"
                 >
                   Log In
                 </Link>
                 <Link
                   href="/auth/signup"
-                  className="text-xs font-medium bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-1.5 rounded-md transition-colors"
+                  className="text-sm font-medium bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-md transition-colors"
                 >
                   Sign Up
                 </Link>

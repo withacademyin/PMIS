@@ -1,18 +1,16 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-
 dotenv.config();
-
 import authRoutes from './routes/authRoutes.js';
-import studentRoutes from './routes/studentRoutes.js';
-import jobRoutes from './routes/jobRoutes.js';
-import applicationRoutes from './routes/applicationRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import healthRoutes from './routes/healthRoutes.js';
-import internshipRoutes from './routes/internshipRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
-import companyRoutes from './routes/companyRoutes.js';
+import itiRoutes from './routes/itiRoutes.js';
+import workerRoutes from './routes/workerRoutes.js';
+import officerRoutes from './routes/officerRoutes.js';
+import workRequirementRoutes from './routes/workRequirementRoutes.js';
+import shortlistRoutes from './routes/shortlistRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -36,14 +34,22 @@ app.use((req, res, next) => {
 });
 
 app.use('/api/v1/health', healthRoutes);
+app.use('/api/health', healthRoutes);
 app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/students', studentRoutes);
-app.use('/api/v1/jobs', jobRoutes);
-app.use('/api/v1/applications', applicationRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/v1/admin', adminRoutes);
-app.use('/api/v1/internships', internshipRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/v1/settings', settingsRoutes);
-app.use('/api/v1/companies', companyRoutes);
+app.use('/api/v1/itis', itiRoutes);
+app.use('/api/itis', itiRoutes);
+app.use('/api/v1/workers', workerRoutes);
+app.use('/api/workers', workerRoutes);
+app.use('/api/v1/officers', officerRoutes);
+app.use('/api/officers', officerRoutes);
+app.use('/api/v1/requirements', workRequirementRoutes);
+app.use('/api/requirements', workRequirementRoutes);
+app.use('/api/v1/shortlists', shortlistRoutes);
+app.use('/api/shortlists', shortlistRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found` });
