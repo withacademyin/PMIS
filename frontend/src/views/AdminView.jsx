@@ -42,7 +42,7 @@ export function AdminView() {
 
   // Modals
   const [isItiModalOpen, setIsItiModalOpen] = useState(false);
-  const [newIti, setNewIti] = useState({ name: '', district: '', address: '', website: '' });
+  const [newIti, setNewIti] = useState({ name: '', district: '', state: '', address: '' });
   const [isCreatingIti, setIsCreatingIti] = useState(false);
   
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -79,9 +79,9 @@ export function AdminView() {
     setError(null);
     try {
       const res = await api.verifyWorker(worker.id, nextStatus);
-      if (res.success && res.data) {
+      if (res.success && res.worker) {
         setWorkers((prev) =>
-          prev.map((w) => (w.id === worker.id ? { ...w, isVerified: res.data.isVerified } : w))
+          prev.map((w) => (w.id === worker.id ? { ...w, isVerified: res.worker.isVerified } : w))
         );
       } else {
         throw new Error('Verification update failed.');
@@ -100,7 +100,7 @@ export function AdminView() {
       const res = await api.createITI(newIti);
       if (res.success) {
         setIsItiModalOpen(false);
-        setNewIti({ name: '', district: '', address: '', website: '' });
+        setNewIti({ name: '', district: '', state: '', address: '' });
         fetchData();
       } else {
         setError(res.message);
@@ -265,7 +265,7 @@ export function AdminView() {
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-slate-900">Add New ITI</h2>
+              <h2 className="text-lg font-semibold text-slate-900">Add ITI to a District Node</h2>
               <button onClick={() => setIsItiModalOpen(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
               </button>
@@ -280,13 +280,17 @@ export function AdminView() {
                 <Input required value={newIti.district} onChange={(e) => setNewIti({...newIti, district: e.target.value})} placeholder="Lucknow" />
               </div>
               <div>
+                <label className="text-xs font-semibold text-slate-700 block mb-1">State *</label>
+                <Input required value={newIti.state} onChange={(e) => setNewIti({...newIti, state: e.target.value})} placeholder="Uttar Pradesh" />
+              </div>
+              <div>
                 <label className="text-xs font-semibold text-slate-700 block mb-1">Address</label>
                 <Input value={newIti.address} onChange={(e) => setNewIti({...newIti, address: e.target.value})} placeholder="Full address" />
               </div>
               <div className="pt-2 flex justify-end gap-3">
                 <Button type="button" variant="ghost" onClick={() => setIsItiModalOpen(false)}>Cancel</Button>
                 <Button type="submit" disabled={isCreatingIti} className="bg-indigo-600 text-white hover:bg-indigo-700">
-                  {isCreatingIti ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : 'Create ITI'}
+                  {isCreatingIti ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : 'Add ITI'}
                 </Button>
               </div>
             </form>
