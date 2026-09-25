@@ -79,9 +79,13 @@ export const createITI = async (req, res) => {
 export const getITIs = async (req, res) => {
   try {
     const { district, state, search, status } = req.query;
+    const officerDistrict = req.user.role === 'OFFICER' ? req.user.officerProfile?.district : null;
+    if (req.user.role === 'OFFICER' && !officerDistrict) {
+      return res.status(403).json({ success: false, message: 'Officer district is not configured' });
+    }
 
     const where = {};
-    if (district) where.district = { equals: district, mode: 'insensitive' };
+    if (officerDistrict || district) where.district = { equals: officerDistrict || district, mode: 'insensitive' };
     if (state) where.state = { equals: state, mode: 'insensitive' };
     if (status) where.status = status;
     if (search) {
@@ -132,13 +136,17 @@ export const getITIById = async (req, res) => {
           take: 50,
         },
         _count: {
-          select: { workers: true, invitations: true },
+          select: { workers: true },
         },
       },
     });
 
     if (!iti) {
       return res.status(404).json({ success: false, message: 'ITI not found' });
+    }
+
+    if (req.user.role === 'OFFICER' && iti.district.toLowerCase() !== req.user.officerProfile?.district?.toLowerCase()) {
+      return res.status(403).json({ success: false, message: 'ITI is outside your assigned district' });
     }
 
     const fullIti = await attachCoordinates(iti);

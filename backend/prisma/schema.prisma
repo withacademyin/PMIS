@@ -2,7 +2,6 @@ datasource db {
   provider   = "postgresql"
   url        = env("DATABASE_URL")
   directUrl  = env("DIRECT_URL")
-  extensions = [vector, postgis]
 }
 
 generator client {
@@ -60,13 +59,23 @@ model ITI {
   id           String                               @id @default(uuid())
   name         String
   code         String?
+  category     String?
+  address      String?
+  pincode      String?
   district     String
   state        String
+  phone        String?
+  email        String?
+  sourcePage   Int?
+  ncvtDetailUrl String?
+  trades       String[]                             @default([])
+  tradesDataStatus String?
   isGovernment Boolean                              @default(true)
-  location     Unsupported("geography(Point,4326)")?
+  location     String?
   description  String?
   status       String                               @default("ACTIVE")
   workers      WorkerProfile[]
+  recommendations ITIRecommendation[]
   createdAt    DateTime                             @default(now())
   updatedAt    DateTime                             @updatedAt
 }
@@ -80,7 +89,7 @@ model WorkerProfile {
   iti                ITI?                                 @relation(fields: [itiId], references: [id])
   trade              String
   certificationGrade String?
-  location           Unsupported("geography(Point,4326)")?
+  location           String?
   availabilityStatus String                               @default("AVAILABLE")
   experienceYears    Int                                  @default(0)
   isVerified         Boolean                              @default(false)
@@ -135,8 +144,26 @@ model WorkRequirement {
   officer       OfficerProfile @relation(fields: [officerId], references: [id])
   requiredTrade String
   shortlists    Shortlist[]
+  recommendations ITIRecommendation[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
+}
+
+model ITIRecommendation {
+  id            String          @id @default(uuid())
+  requirementId String
+  itiId         String
+  score         Float
+  reasons       Json?
+  status        String          @default("RECOMMENDED")
+  notes         String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  requirement   WorkRequirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  iti           ITI             @relation(fields: [itiId], references: [id], onDelete: Cascade)
+
+  @@unique([requirementId, itiId])
+  @@index([itiId])
 }
 
 model Shortlist {
@@ -184,7 +211,7 @@ model TradeSkill {
   category       String?
   description    String?
   aliases        String[]
-  embedding      Unsupported("vector")?
+  embedding      String?
   is_active      Boolean                @default(true)
   workerSkills   WorkerSkill[]
 }

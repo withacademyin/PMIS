@@ -1,9 +1,4 @@
 -- CreateExtension
-CREATE EXTENSION IF NOT EXISTS "postgis";
-
--- CreateExtension
-CREATE EXTENSION IF NOT EXISTS "vector";
-
 -- CreateEnum
 CREATE TYPE "Role" AS ENUM ('LEARNER', 'WORKER', 'OFFICER', 'ADMIN');
 
@@ -46,7 +41,7 @@ CREATE TABLE "ITI" (
     "district" TEXT NOT NULL,
     "state" TEXT NOT NULL,
     "isGovernment" BOOLEAN NOT NULL DEFAULT true,
-    "location" geography(Point,4326),
+    "location" TEXT,
     "description" TEXT,
     "status" TEXT NOT NULL DEFAULT 'ACTIVE',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -63,7 +58,7 @@ CREATE TABLE "WorkerProfile" (
     "itiId" TEXT,
     "trade" TEXT NOT NULL,
     "certificationGrade" TEXT,
-    "location" geography(Point,4326),
+    "location" TEXT,
     "availabilityStatus" TEXT NOT NULL DEFAULT 'AVAILABLE',
     "experienceYears" INTEGER NOT NULL DEFAULT 0,
     "isVerified" BOOLEAN NOT NULL DEFAULT false,
@@ -176,7 +171,7 @@ CREATE TABLE "TradeSkill" (
     "category" TEXT,
     "description" TEXT,
     "aliases" TEXT[],
-    "embedding" vector,
+    "embedding" TEXT,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
 
     CONSTRAINT "TradeSkill_pkey" PRIMARY KEY ("id")

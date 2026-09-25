@@ -129,6 +129,19 @@ export const api = {
     headers: getAuthHeader(),
   }).then(handleResponse),
 
+  matchRequirementToITIs: (id) => fetch(`${BASE_URL}/requirements/${id}/match-itis`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+  }).then(handleResponse),
+
+  getRequirementITIs: (id) => fetch(`${BASE_URL}/requirements/${id}/itis`, {
+    headers: getAuthHeader(),
+  }).then(handleResponse),
+
+  getITIWorkers: (id, trade = '') => fetch(`${BASE_URL}/itis/${id}/workers${trade ? `?trade=${encodeURIComponent(trade)}` : ''}`, {
+    headers: getAuthHeader(),
+  }).then(handleResponse),
+
   // Shortlists
   getShortlists: () => fetch(`${BASE_URL}/shortlists`, {
     headers: getAuthHeader(),
