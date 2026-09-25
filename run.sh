@@ -32,7 +32,7 @@ else
   echo -e "${YELLOW}⚡ PostgreSQL is not running. Attempting to start service...${NC}"
   
   if command -v brew >/dev/null 2>&1; then
-    brew services start postgresql@16 2>/dev/null || brew services start postgresql 2>/dev/null || true
+    brew services start postgresql@17 2>/dev/null || brew services start postgresql@16 2>/dev/null || brew services start postgresql 2>/dev/null || true
   fi
 
   # Wait up to 10 seconds for Postgres to become ready
@@ -45,7 +45,7 @@ else
 
   if ! pg_isready -h localhost -p 5432 -q 2>/dev/null; then
     echo -e "${RED}✗ Error: PostgreSQL could not be started on port 5432.${NC}"
-    echo -e "Please start PostgreSQL manually (e.g., 'brew services start postgresql@16') and re-run."
+    echo -e "Please start PostgreSQL manually (e.g., 'brew services start postgresql@17') and re-run."
     exit 1
   fi
   echo -e "${GREEN}✓ PostgreSQL service started successfully.${NC}"
@@ -57,7 +57,7 @@ fi
 echo -e "\n${BLUE}[2/4] Verifying database schema...${NC}"
 
 CURRENT_USER=$(whoami)
-DB_NAME="internship_mvp"
+DB_NAME="iti-portal"
 
 if ! psql -h localhost -p 5432 -U "${CURRENT_USER}" -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw "${DB_NAME}"; then
   echo -e "${YELLOW}Database '${DB_NAME}' does not exist. Creating...${NC}"

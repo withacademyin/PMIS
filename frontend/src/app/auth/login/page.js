@@ -20,10 +20,10 @@ function LoginScreen() {
 
   useEffect(() => {
     if (!loading && user) {
-      if (user.role === 'LEARNER') {
-        router.replace(user.profileCompleted ? '/dashboard/student' : '/onboarding/student');
-      } else if (user.role === 'RECRUITER') {
-        router.replace('/dashboard/recruiter');
+      if (user.role === 'LEARNER' || user.role === 'WORKER') {
+        router.replace(user.profileCompleted ? '/dashboard/worker' : '/onboarding/worker');
+      } else if (user.role === 'OFFICER' || user.role === 'RECRUITER') {
+        router.replace('/dashboard/officer');
       } else if (user.role === 'ADMIN') {
         router.replace('/dashboard/admin');
       } else {

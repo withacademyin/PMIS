@@ -1,45 +1,48 @@
 import { PrismaClient } from '@prisma/client';
-import { SKILLS, LANGUAGES, PROJECT_TYPES, CERTIFICATIONS } from '../src/utils/fallbackParser.js';
-import { createCanonicalEntity } from '../src/services/semanticResolver.js';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Seeding the CanonicalEntity database...');
+  console.log('Seeding initial ITI Portal data...');
 
-  await seedDictionary(SKILLS, 'skill');
-  await seedDictionary(LANGUAGES, 'language');
-  await seedDictionary(PROJECT_TYPES, 'project_type');
-  await seedDictionary(CERTIFICATIONS, 'certification');
-  
-  console.log('Seeding finished.');
-}
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@hiringportal.com';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123';
 
-async function seedDictionary(dictionary, type) {
-  for (const [canonical_name, aliases] of Object.entries(dictionary)) {
-    const existing = await prisma.canonicalEntity.findFirst({
-      where: { canonical_name, type }
+  const existingAdmin = await prisma.user.findUnique({
+    where: { email: adminEmail }
+  });
+
+  if (!existingAdmin) {
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(adminPassword, salt);
+    await prisma.user.create({
+      data: {
+        email: adminEmail,
+        password: hashedPassword,
+        role: 'ADMIN',
+      },
     });
-    
-    if (!existing) {
-      console.log(`Seeding ${type}: ${canonical_name}`);
-      try {
-        await createCanonicalEntity({
-          canonical_name,
-          type,
-          aliases,
-          category: null,
-          description: null
-        });
-        // 500ms delay to prevent rate limiting on the embedding API during initial bulk seed
-        await new Promise(r => setTimeout(r, 500)); 
-      } catch (err) {
-        console.error(`Failed to seed ${canonical_name}:`, err.message);
-      }
-    } else {
-      console.log(`Skipping ${canonical_name} (already exists)`);
-    }
+    console.log(`✅ Default admin created: ${adminEmail}`);
+  } else {
+    console.log('Admin user already exists.');
   }
+
+  // Initialize SystemSettings if not present
+  const settings = await prisma.systemSettings.findFirst();
+  if (!settings) {
+    await prisma.systemSettings.create({
+      data: {
+        id: 1,
+        allowedITIs: [],
+        allowedTrades: ['Electrician', 'Fitter', 'Welder', 'Mechanic', 'Turner', 'Machinist', 'COPA', 'Plumber'],
+        allowedEmailDomains: [],
+      }
+    });
+    console.log('✅ Default SystemSettings initialized.');
+  }
+
+  console.log('Seeding completed.');
 }
 
 main()
