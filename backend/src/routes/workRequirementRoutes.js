@@ -7,6 +7,7 @@ import {
   deleteRequirement
 } from '../controllers/workRequirementController.js';
 import { requireAuth, requireOfficer } from '../middlewares/auth.js';
+import { matchRequirementToITIs, getRequirementITIs } from '../controllers/itiRecommendationController.js';
 
 const router = express.Router();
 
@@ -21,5 +22,8 @@ router.route('/:id')
   .get(getRequirementById)
   .put(updateRequirement)
   .delete(deleteRequirement);
+
+router.post('/:id/match-itis', matchRequirementToITIs);
+router.get('/:id/itis', getRequirementITIs);
 
 export default router;
