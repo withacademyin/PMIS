@@ -7,6 +7,7 @@ import {
   updateITI,
   deleteITI
 } from '../controllers/itiController.js';
+import { getITIWorkers } from '../controllers/itiRecommendationController.js';
 
 const router = express.Router();
 
@@ -14,6 +15,7 @@ router.use(requireAuth);
 
 // Public / Officer read endpoints
 router.get('/', getITIs);
+router.get('/:id/workers', getITIWorkers);
 router.get('/:id', getITIById);
 
 // Admin-only management endpoints
