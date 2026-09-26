@@ -1,22 +1,30 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { Logo } from '@/components/ui/logo';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 import { WebGLBackground } from '@/components/ui/webgl-background';
 
 function LoginScreen() {
+  const searchParams = useSearchParams();
   const { login, user, loading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const router = useRouter();
+
+  useEffect(() => {
+    const emailParam = searchParams.get('email');
+    if (emailParam) {
+      setEmail(emailParam);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!loading && user) {
@@ -129,7 +137,9 @@ export default function LoginPage() {
     <div className="min-h-screen flex flex-col bg-white">
       <Navbar />
       <div className="flex-1 flex items-center justify-center relative">
-        <LoginScreen />
+        <Suspense fallback={<div className="text-slate-500">Loading...</div>}>
+          <LoginScreen />
+        </Suspense>
       </div>
     </div>
   );
