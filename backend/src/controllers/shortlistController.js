@@ -6,12 +6,12 @@ const prisma = new PrismaClient();
 export const getMyShortlists = async (req, res) => {
   try {
     const officerId = req.user.officerProfile?.id;
-    if (!officerId) {
+    if (!officerId && req.user.role !== 'ADMIN') {
       return res.status(403).json({ success: false, message: 'Officer profile not found' });
     }
 
     const { status, requirementId } = req.query;
-    const where = { officerId };
+    const where = officerId ? { officerId } : {};
     if (status) where.status = status;
     if (requirementId) where.requirementId = requirementId;
 
@@ -50,8 +50,38 @@ export const addToShortlist = async (req, res) => {
 
     const { workerId, requirementId, notes, matchScore, distanceM } = req.body;
 
-    if (!workerId) {
+    if (typeof workerId !== 'string' || !workerId.trim()) {
       return res.status(400).json({ success: false, message: 'workerId is required' });
+    }
+    if (matchScore !== undefined && matchScore !== null && (!Number.isFinite(Number(matchScore)) || Number(matchScore) < 0 || Number(matchScore) > 100)) {
+      return res.status(400).json({ success: false, message: 'matchScore must be between 0 and 100' });
+    }
+    if (distanceM !== undefined && distanceM !== null && (!Number.isFinite(Number(distanceM)) || Number(distanceM) < 0)) {
+      return res.status(400).json({ success: false, message: 'distanceM must be a non-negative number' });
+    }
+    if (notes !== undefined && notes !== null && typeof notes !== 'string') {
+      return res.status(400).json({ success: false, message: 'notes must be a string' });
+    }
+
+    const worker = await prisma.workerProfile.findUnique({ where: { id: workerId }, select: { id: true, trade: true, itiId: true, iti: { select: { district: true } } } });
+    if (!worker) return res.status(404).json({ success: false, message: 'Worker not found' });
+    const district = req.user.officerProfile.district;
+    if (!worker.iti || worker.iti.district.toLowerCase() !== district.toLowerCase()) {
+      return res.status(403).json({ success: false, message: 'Worker is outside your assigned district' });
+    }
+    if (requirementId) {
+      const requirement = await prisma.workRequirement.findFirst({
+        where: {
+          id: requirementId,
+          officerId,
+          requiredTrade: { equals: worker.trade || '', mode: 'insensitive' },
+          recommendations: { some: { itiId: worker.itiId } },
+        },
+      });
+      if (!requirement) return res.status(403).json({ success: false, message: 'Requirement is not assigned to your account or the worker is not a matched candidate' });
+      if (requirement.requiredTrade.toLowerCase() !== worker.trade?.toLowerCase()) {
+        return res.status(400).json({ success: false, message: 'Worker trade does not match the requirement' });
+      }
     }
 
     // Check if worker already shortlisted for this requirement
@@ -71,10 +101,10 @@ export const addToShortlist = async (req, res) => {
       data: {
         workerId,
         officerId,
-        requirementId,
-        notes,
-        matchScore,
-        distanceM
+        requirementId: requirementId || null,
+        notes: typeof notes === 'string' ? notes.trim() : null,
+        matchScore: matchScore !== undefined && matchScore !== null ? Number(matchScore) : null,
+        distanceM: distanceM !== undefined && distanceM !== null ? Number(distanceM) : null
       }
     });
 
@@ -90,7 +120,11 @@ export const updateShortlistStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const officerId = req.user.officerProfile?.id;
+    if (!officerId && req.user.role !== 'ADMIN') return res.status(403).json({ success: false, message: 'Officer profile not found' });
     const { status, notes } = req.body;
+    const allowedStatuses = ['SHORTLISTED', 'INTERVIEW_SCHEDULED', 'SELECTED', 'ACCEPTED', 'REJECTED'];
+    if (status !== undefined && !allowedStatuses.includes(status)) return res.status(400).json({ success: false, message: 'Invalid shortlist status' });
+    if (notes !== undefined && notes !== null && typeof notes !== 'string') return res.status(400).json({ success: false, message: 'notes must be a string' });
 
     const existing = await prisma.shortlist.findUnique({ where: { id } });
     if (!existing) {
@@ -105,7 +139,7 @@ export const updateShortlistStatus = async (req, res) => {
       where: { id },
       data: {
         status: status !== undefined ? status : existing.status,
-        notes: notes !== undefined ? notes : existing.notes
+        notes: notes !== undefined ? (notes === null ? null : notes.trim()) : existing.notes
       }
     });
 
@@ -121,6 +155,7 @@ export const removeFromShortlist = async (req, res) => {
   try {
     const { id } = req.params;
     const officerId = req.user.officerProfile?.id;
+    if (!officerId && req.user.role !== 'ADMIN') return res.status(403).json({ success: false, message: 'Officer profile not found' });
 
     const existing = await prisma.shortlist.findUnique({ where: { id } });
     if (!existing) {
