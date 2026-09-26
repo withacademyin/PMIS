@@ -26,6 +26,12 @@ export const api = {
     body: JSON.stringify(data),
   }).then(handleResponse),
 
+  acceptOfficerInvitation: (data) => fetch(`${BASE_URL}/auth/accept-invite`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  }).then(handleResponse),
+
   login: (credentials) => fetch(`${BASE_URL}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -64,6 +70,13 @@ export const api = {
   getWorkers: (query = '') => fetch(`${BASE_URL}/workers${query}`, {
     headers: getAuthHeader(),
   }).then(handleResponse),
+
+  searchWorkers: (params = {}) => {
+    const query = new URLSearchParams(params);
+    return fetch(`${BASE_URL}/workers/search?${query.toString()}`, {
+      headers: getAuthHeader(),
+    }).then(handleResponse);
+  },
   
   verifyWorker: (id, isVerified) => fetch(`${BASE_URL}/workers/${id}/verify`, {
     method: 'PATCH',
@@ -129,18 +142,36 @@ export const api = {
     headers: getAuthHeader(),
   }).then(handleResponse),
 
-  matchRequirementToITIs: (id) => fetch(`${BASE_URL}/requirements/${id}/match-itis`, {
+  getTopNearbyITIs: (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.lat !== undefined) query.set('lat', params.lat);
+    if (params.lng !== undefined) query.set('lng', params.lng);
+    if (params.radiusKm) query.set('radiusKm', params.radiusKm);
+    if (params.trade) query.set('trade', params.trade);
+    if (params.limit) query.set('limit', params.limit);
+    return fetch(`${BASE_URL}/itis/top-nearby?${query.toString()}`, {
+      headers: getAuthHeader(),
+    }).then(handleResponse);
+  },
+
+  matchRequirementToITIs: (id, locationParams = {}) => fetch(`${BASE_URL}/requirements/${id}/match-itis`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+    body: JSON.stringify(locationParams),
   }).then(handleResponse),
 
   getRequirementITIs: (id) => fetch(`${BASE_URL}/requirements/${id}/itis`, {
     headers: getAuthHeader(),
   }).then(handleResponse),
 
-  getITIWorkers: (id, trade = '') => fetch(`${BASE_URL}/itis/${id}/workers${trade ? `?trade=${encodeURIComponent(trade)}` : ''}`, {
-    headers: getAuthHeader(),
-  }).then(handleResponse),
+  getITIWorkers: (id, trade = '', requirementId = '') => {
+    const query = new URLSearchParams();
+    if (trade) query.set('trade', trade);
+    if (requirementId) query.set('requirementId', requirementId);
+    return fetch(`${BASE_URL}/itis/${id}/workers${query.size ? `?${query.toString()}` : ''}`, {
+      headers: getAuthHeader(),
+    }).then(handleResponse);
+  },
 
   // Shortlists
   getShortlists: () => fetch(`${BASE_URL}/shortlists`, {

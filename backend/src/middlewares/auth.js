@@ -1,7 +1,13 @@
 import jwt from 'jsonwebtoken';
 import prisma from '../config/prisma.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key_for_dev';
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
+  throw new Error('JWT_SECRET must be configured in production');
+}
+
+const signingSecret = JWT_SECRET || 'fallback_secret_key_for_dev';
 
 export async function requireAuth(req, res, next) {
   try {
@@ -12,7 +18,7 @@ export async function requireAuth(req, res, next) {
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, signingSecret);
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },
@@ -82,7 +88,7 @@ export async function optionalAuth(req, res, next) {
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, signingSecret);
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },

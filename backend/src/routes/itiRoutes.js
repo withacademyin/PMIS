@@ -4,6 +4,7 @@ import {
   createITI,
   getITIs,
   getITIById,
+  getTopNearbyITIs,
   updateITI,
   deleteITI
 } from '../controllers/itiController.js';
@@ -14,6 +15,7 @@ const router = express.Router();
 router.use(requireAuth);
 
 // Public / Officer read endpoints
+router.get('/top-nearby', getTopNearbyITIs);
 router.get('/', getITIs);
 router.get('/:id/workers', getITIWorkers);
 router.get('/:id', getITIById);

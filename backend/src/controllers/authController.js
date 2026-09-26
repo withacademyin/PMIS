@@ -2,22 +2,35 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../config/prisma.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key_for_dev';
+const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? null : 'fallback_secret_key_for_dev');
+
+if (!JWT_SECRET) throw new Error('JWT_SECRET must be configured in production');
 
 export const register = async (req, res) => {
   try {
     const { name, email, password, role, trade, district, department, experienceYears, itiId } = req.body;
+    console.log(`[Auth] Registration attempt for email: "${email}", role: "${role}"`);
 
     if (!name || !email || !password || !role) {
       return res.status(400).json({ success: false, message: 'Name, email, password, and role are required' });
     }
+    if (typeof name !== 'string' || typeof email !== 'string' || typeof password !== 'string' || typeof role !== 'string') {
+      return res.status(400).json({ success: false, message: 'Invalid registration fields' });
+    }
+    if (password.length < 10 || password.length > 128) {
+      return res.status(400).json({ success: false, message: 'Password must be between 10 and 128 characters' });
+    }
+    const normalizedEmail = email.trim().toLowerCase();
 
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    const existingUser = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (existingUser) {
       return res.status(400).json({ success: false, message: 'Email already in use' });
     }
 
     const userRole = role.toUpperCase();
+    if (userRole === 'OFFICER') {
+      return res.status(403).json({ success: false, message: 'Officer accounts require an administrator invitation.' });
+    }
     const validRoles = ['WORKER', 'OFFICER'];
     if (!validRoles.includes(userRole)) {
       if (userRole === 'ADMIN') {
@@ -38,7 +51,7 @@ export const register = async (req, res) => {
 
     const user = await prisma.user.create({
       data: {
-        email,
+        email: normalizedEmail,
         password: hashedPassword,
         role: userRole,
       },
@@ -50,7 +63,7 @@ export const register = async (req, res) => {
       profileData = await prisma.workerProfile.create({
         data: {
           userId: user.id,
-          fullName: name,
+          fullName: name.trim(),
           trade: trade || 'General',
           itiId: itiId || null,
           experienceYears: experienceYears ? parseInt(experienceYears, 10) : 0,
@@ -64,10 +77,10 @@ export const register = async (req, res) => {
       profileData = await prisma.officerProfile.create({
         data: {
           userId: user.id,
-          name: name,
-          district: district,
+          name: name.trim(),
+          district: district.trim(),
           department: department || null,
-          isVerified: true,
+          isVerified: false,
         },
       });
     }
@@ -100,12 +113,12 @@ export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
+    if (typeof email !== 'string' || typeof password !== 'string' || !email.trim() || !password) {
       return res.status(400).json({ success: false, message: 'Email and password are required' });
     }
 
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: { email: email.trim().toLowerCase() },
       include: {
         workerProfile: {
           include: {

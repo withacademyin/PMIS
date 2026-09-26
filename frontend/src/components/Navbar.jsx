@@ -75,9 +75,26 @@ export function Navbar() {
             </>
           ) : (
             !loading && (
-              <Link href="/auth/signup?role=worker" className="px-4 py-2 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors">
-                For Workers
-              </Link>
+              <div className="flex items-center gap-1">
+                <Link
+                  href="/auth/signup?role=worker"
+                  className="px-3.5 py-2 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors text-slate-600"
+                >
+                  For Workers
+                </Link>
+                <Link
+                  href="/#how-it-works"
+                  className="px-3.5 py-2 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors text-slate-600"
+                >
+                  How It Works
+                </Link>
+                <Link
+                  href="/#contact"
+                  className="px-3.5 py-2 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors text-slate-600"
+                >
+                  Contact Us
+                </Link>
+              </div>
             )
           )}
         </nav>

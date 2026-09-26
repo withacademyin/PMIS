@@ -2,6 +2,7 @@ datasource db {
   provider   = "postgresql"
   url        = env("DATABASE_URL")
   directUrl  = env("DIRECT_URL")
+  extensions = [vector, postgis]
 }
 
 generator client {
@@ -71,7 +72,7 @@ model ITI {
   trades       String[]                             @default([])
   tradesDataStatus String?
   isGovernment Boolean                              @default(true)
-  location     String?
+  location     Unsupported("geography(Point,4326)")?
   description  String?
   status       String                               @default("ACTIVE")
   workers      WorkerProfile[]
@@ -89,7 +90,7 @@ model WorkerProfile {
   iti                ITI?                                 @relation(fields: [itiId], references: [id])
   trade              String
   certificationGrade String?
-  location           String?
+  location           Unsupported("geography(Point,4326)")?
   availabilityStatus String                               @default("AVAILABLE")
   experienceYears    Int                                  @default(0)
   isVerified         Boolean                              @default(false)
@@ -211,7 +212,7 @@ model TradeSkill {
   category       String?
   description    String?
   aliases        String[]
-  embedding      String?
+  embedding      Unsupported("vector")?
   is_active      Boolean                @default(true)
   workerSkills   WorkerSkill[]
 }

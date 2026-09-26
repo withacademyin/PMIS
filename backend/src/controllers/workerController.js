@@ -6,9 +6,9 @@ import prisma from '../config/prisma.js';
  */
 async function updateWorkerLocation(workerId, lat, lng) {
   if (lat !== undefined && lng !== undefined && lat !== null && lng !== null) {
-    const latitude = parseFloat(lat);
-    const longitude = parseFloat(lng);
-    if (!isNaN(latitude) && !isNaN(longitude)) {
+    const latitude = Number(lat);
+    const longitude = Number(lng);
+    if (Number.isFinite(latitude) && Number.isFinite(longitude) && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180) {
       await prisma.$executeRawUnsafe(
         `UPDATE "WorkerProfile" SET location = ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography WHERE id = $3;`,
         longitude,
@@ -62,11 +62,19 @@ export const createWorker = async (req, res) => {
       lng,
     } = req.body;
 
-    if (!email || !fullName || !trade) {
+    if (typeof email !== 'string' || typeof fullName !== 'string' || typeof trade !== 'string' || !email.trim() || !fullName.trim() || !trade.trim()) {
       return res.status(400).json({ success: false, message: 'Email, fullName, and trade are required' });
     }
+    if (req.user.role !== 'ADMIN') return res.status(403).json({ success: false, message: 'Only administrators may provision worker accounts' });
+    if (password !== undefined && (typeof password !== 'string' || password.length < 10 || password.length > 128)) {
+      return res.status(400).json({ success: false, message: 'Password must be between 10 and 128 characters' });
+    }
+    if (experienceYears !== undefined && (!Number.isInteger(Number(experienceYears)) || Number(experienceYears) < 0 || Number(experienceYears) > 80)) {
+      return res.status(400).json({ success: false, message: 'experienceYears must be an integer from 0 to 80' });
+    }
 
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    const normalizedEmail = email.trim().toLowerCase();
+    const existingUser = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (existingUser) {
       return res.status(400).json({ success: false, message: 'Email already exists' });
     }
@@ -75,12 +83,12 @@ export const createWorker = async (req, res) => {
     const canVerify = req.user.role === 'ADMIN';
     const finalVerification = canVerify ? Boolean(isVerified) : false;
 
-    const defaultPassword = password || 'Worker@123';
-    const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+    if (!password) return res.status(400).json({ success: false, message: 'A temporary password is required when an administrator creates a worker account' });
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await prisma.user.create({
       data: {
-        email,
+        email: normalizedEmail,
         password: hashedPassword,
         role: 'WORKER',
       },
@@ -89,8 +97,8 @@ export const createWorker = async (req, res) => {
     const workerProfile = await prisma.workerProfile.create({
       data: {
         userId: user.id,
-        fullName,
-        trade,
+        fullName: fullName.trim(),
+        trade: trade.trim(),
         certificationGrade: certificationGrade || null,
         experienceYears: experienceYears ? parseInt(experienceYears, 10) : 0,
         availabilityStatus,
@@ -124,8 +132,15 @@ export const createWorker = async (req, res) => {
 export const getWorkers = async (req, res) => {
   try {
     const { trade, district, availabilityStatus, isVerified, itiId, minExperience, search } = req.query;
+    if (!['ADMIN', 'OFFICER'].includes(req.user.role)) return res.status(403).json({ success: false, message: 'Worker directory is available to administrators and nodal officers' });
+    if (req.user.role === 'OFFICER' && !req.user.officerProfile?.district) return res.status(403).json({ success: false, message: 'Officer district is not configured' });
 
     const where = {};
+    if (req.user.role === 'OFFICER') {
+      where.iti = { district: { equals: req.user.officerProfile.district, mode: 'insensitive' } };
+      where.isVerified = true;
+      where.availabilityStatus = 'AVAILABLE';
+    }
     if (trade) where.trade = { equals: trade, mode: 'insensitive' };
     if (availabilityStatus) where.availabilityStatus = availabilityStatus;
     if (isVerified !== undefined) where.isVerified = isVerified === 'true' || isVerified === true;
@@ -170,13 +185,14 @@ export const getWorkers = async (req, res) => {
 export const getWorkerById = async (req, res) => {
   try {
     const { id } = req.params;
+    if (!['ADMIN', 'OFFICER', 'WORKER'].includes(req.user.role)) return res.status(403).json({ success: false, message: 'Forbidden' });
 
     const worker = await prisma.workerProfile.findUnique({
       where: { id },
       include: {
         iti: true,
         user: {
-          select: { id: true, email: true, createdAt: true },
+          select: { id: true, createdAt: true },
         },
       },
     });
@@ -184,8 +200,15 @@ export const getWorkerById = async (req, res) => {
     if (!worker) {
       return res.status(404).json({ success: false, message: 'Worker profile not found' });
     }
+    if (req.user.role === 'OFFICER' && (!worker.isVerified || worker.availabilityStatus !== 'AVAILABLE' || worker.iti?.district?.toLowerCase() !== req.user.officerProfile?.district?.toLowerCase())) {
+      return res.status(404).json({ success: false, message: 'Worker profile not found' });
+    }
+    if (req.user.role === 'WORKER' && req.user.id !== worker.userId) return res.status(403).json({ success: false, message: 'Forbidden' });
 
     const fullWorker = await attachWorkerCoordinates(worker);
+    if (req.user.role === 'ADMIN' || req.user.id === worker.userId) {
+      fullWorker.user.email = (await prisma.user.findUnique({ where: { id: worker.userId }, select: { email: true } }))?.email;
+    }
     return res.json({ success: true, worker: fullWorker });
   } catch (err) {
     console.error('Error fetching worker by ID:', err);
@@ -224,26 +247,41 @@ export const updateWorker = async (req, res) => {
       lng,
     } = req.body;
 
+    if (fullName !== undefined && (typeof fullName !== 'string' || !fullName.trim())) return res.status(400).json({ success: false, message: 'fullName must be a non-empty string' });
+    if (trade !== undefined && (typeof trade !== 'string' || !trade.trim())) return res.status(400).json({ success: false, message: 'trade must be a non-empty string' });
+    if (experienceYears !== undefined && (!Number.isInteger(Number(experienceYears)) || Number(experienceYears) < 0 || Number(experienceYears) > 80)) return res.status(400).json({ success: false, message: 'experienceYears must be an integer from 0 to 80' });
+    if (availabilityStatus !== undefined && !['AVAILABLE', 'EMPLOYED', 'UNAVAILABLE'].includes(availabilityStatus)) return res.status(400).json({ success: false, message: 'Invalid availabilityStatus' });
+    if (itiId !== undefined && itiId !== null && typeof itiId !== 'string') return res.status(400).json({ success: false, message: 'itiId must be a string or null' });
+    if (!isAdmin && itiId !== undefined && itiId !== existing.itiId) return res.status(403).json({ success: false, message: 'Only administrators may change ITI affiliation' });
+
     const updateData = {};
-    if (fullName !== undefined) updateData.fullName = fullName;
-    if (trade !== undefined) updateData.trade = trade;
+    if (fullName !== undefined) updateData.fullName = fullName.trim();
+    if (trade !== undefined) updateData.trade = trade.trim();
     if (certificationGrade !== undefined) updateData.certificationGrade = certificationGrade;
-    if (experienceYears !== undefined) updateData.experienceYears = parseInt(experienceYears, 10);
+    if (experienceYears !== undefined) updateData.experienceYears = Number(experienceYears);
     if (availabilityStatus !== undefined) updateData.availabilityStatus = availabilityStatus;
-    if (itiId !== undefined) updateData.itiId = itiId;
+    if (isAdmin && itiId !== undefined) updateData.itiId = itiId;
+    const parseStringList = (value) => {
+      if (Array.isArray(value) && value.every((item) => typeof item === 'string')) return value.map((item) => item.trim()).filter(Boolean);
+      if (typeof value === 'string') return value.split(',').map((item) => item.trim()).filter(Boolean);
+      return null;
+    };
     if (skills !== undefined) {
-      updateData.skills = Array.isArray(skills) ? skills : String(skills).split(',').map(s => s.trim()).filter(Boolean);
+      updateData.skills = parseStringList(skills);
+      if (!updateData.skills) return res.status(400).json({ success: false, message: 'skills must be a list of strings' });
     }
     if (languages !== undefined) {
-      updateData.languages = Array.isArray(languages) ? languages : String(languages).split(',').map(s => s.trim()).filter(Boolean);
+      updateData.languages = parseStringList(languages);
+      if (!updateData.languages) return res.status(400).json({ success: false, message: 'languages must be a list of strings' });
     }
     if (certifications !== undefined) {
-      updateData.certifications = Array.isArray(certifications) ? certifications : String(certifications).split(',').map(s => s.trim()).filter(Boolean);
+      updateData.certifications = parseStringList(certifications);
+      if (!updateData.certifications) return res.status(400).json({ success: false, message: 'certifications must be a list of strings' });
     }
     // Only Admin can verify/unverify
-    if (isAdmin && isVerified !== undefined) {
-      updateData.isVerified = Boolean(isVerified);
-    }
+    if (isVerified !== undefined && typeof isVerified !== 'boolean') return res.status(400).json({ success: false, message: 'isVerified must be a boolean' });
+    if (!isAdmin && isVerified !== undefined) return res.status(403).json({ success: false, message: 'Only administrators may change verification status' });
+    if (isAdmin && isVerified !== undefined) updateData.isVerified = isVerified;
 
     const updated = await prisma.workerProfile.update({
       where: { id },
@@ -254,6 +292,8 @@ export const updateWorker = async (req, res) => {
       },
     });
 
+    if ((lat !== undefined) !== (lng !== undefined)) return res.status(400).json({ success: false, message: 'lat and lng must be provided together' });
+    if (lat !== undefined && !isAdmin) return res.status(403).json({ success: false, message: 'Only administrators may update worker location' });
     if (lat !== undefined && lng !== undefined) {
       await updateWorkerLocation(id, lat, lng);
     }
@@ -338,6 +378,11 @@ export const searchWorkers = async (req, res) => {
     const longitude = hasCoords ? parseFloat(lng) : null;
     const radiusMeters = parseFloat(radiusKm) * 1000;
     const maxResults = parseInt(limit, 10) || 100;
+    const safeRadiusMeters = Number.isFinite(radiusMeters) && radiusMeters > 0 ? Math.min(radiusMeters, 200000) : null;
+    const safeLimit = Number.isFinite(maxResults) ? Math.max(1, Math.min(maxResults, 100)) : 100;
+    const validCoordinates = !hasCoords || (Number.isFinite(latitude) && latitude >= -90 && latitude <= 90 && Number.isFinite(longitude) && longitude >= -180 && longitude <= 180);
+    if (!validCoordinates) return res.status(400).json({ success: false, message: 'Invalid latitude or longitude' });
+    if (!safeRadiusMeters) return res.status(400).json({ success: false, message: 'radiusKm must be greater than zero' });
 
     let workers = [];
 
@@ -364,7 +409,6 @@ export const searchWorkers = async (req, res) => {
           i.district as "itiDistrict",
           i.state as "itiState",
           i."isGovernment" as "itiIsGovernment",
-          u.email as "userEmail",
           ST_Y(COALESCE(w.location, i.location)::geometry) as lat,
           ST_X(COALESCE(w.location, i.location)::geometry) as lng,
           ROUND(ST_Distance(
@@ -377,8 +421,7 @@ export const searchWorkers = async (req, res) => {
           ) / 1000.0)::numeric, 2) as "distanceKm"
         FROM "WorkerProfile" w
         LEFT JOIN "ITI" i ON w."itiId" = i.id
-        JOIN "User" u ON w."userId" = u.id
-        WHERE 
+        WHERE
           COALESCE(w.location, i.location) IS NOT NULL
           AND ST_DWithin(
             COALESCE(w.location, i.location),
@@ -394,13 +437,13 @@ export const searchWorkers = async (req, res) => {
         LIMIT $9;`,
         longitude,
         latitude,
-        radiusMeters,
+        safeRadiusMeters,
         trade || null,
         district || null,
         availabilityStatus || null,
         isVerified !== undefined ? (isVerified === 'true' || isVerified === true) : null,
         minExperience ? parseInt(minExperience, 10) : null,
-        maxResults
+        safeLimit
       );
     } else {
       // Non-coordinate fallback: filter by district/trade/etc., ordered by most recent
@@ -425,15 +468,13 @@ export const searchWorkers = async (req, res) => {
           i.district as "itiDistrict",
           i.state as "itiState",
           i."isGovernment" as "itiIsGovernment",
-          u.email as "userEmail",
           ST_Y(COALESCE(w.location, i.location)::geometry) as lat,
           ST_X(COALESCE(w.location, i.location)::geometry) as lng,
           NULL::numeric as "distanceMeters",
           NULL::numeric as "distanceKm"
         FROM "WorkerProfile" w
         LEFT JOIN "ITI" i ON w."itiId" = i.id
-        JOIN "User" u ON w."userId" = u.id
-        WHERE 
+        WHERE
           ($1::text IS NULL OR LOWER(w.trade) = LOWER($1))
           AND ($2::text IS NULL OR LOWER(i.district) = LOWER($2))
           AND ($3::text IS NULL OR w."availabilityStatus" = $3)
@@ -446,7 +487,7 @@ export const searchWorkers = async (req, res) => {
         availabilityStatus || null,
         isVerified !== undefined ? (isVerified === 'true' || isVerified === true) : null,
         minExperience ? parseInt(minExperience, 10) : null,
-        maxResults
+        safeLimit
       );
     }
 
@@ -455,7 +496,7 @@ export const searchWorkers = async (req, res) => {
       query: {
         lat: latitude,
         lng: longitude,
-        radiusKm: hasCoords ? parseFloat(radiusKm) : null,
+        radiusKm: hasCoords ? safeRadiusMeters / 1000 : null,
         trade: trade || null,
         district: district || null,
       },

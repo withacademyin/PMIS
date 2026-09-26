@@ -1,7 +1,6 @@
 import express from 'express';
 import { requireAuth, requireAdmin } from '../middlewares/auth.js';
 import {
-  registerOfficer,
   getMyOfficerProfile,
   updateMyOfficerProfile,
   getOfficers,
@@ -11,8 +10,6 @@ import { inviteOfficer } from '../controllers/invitationController.js';
 
 const router = express.Router();
 
-// Public registration endpoint
-router.post('/register', registerOfficer);
 
 // Authenticated officer endpoints
 router.get('/me', requireAuth, getMyOfficerProfile);
@@ -21,7 +18,7 @@ router.put('/me', requireAuth, updateMyOfficerProfile);
 
 // Admin officer management
 router.get('/', requireAuth, requireAdmin, getOfficers);
-router.get('/:id', requireAuth, getOfficerById);
+router.get('/:id', requireAuth, requireAdmin, getOfficerById);
 router.post('/invite', requireAuth, requireAdmin, inviteOfficer);
 
 export default router;

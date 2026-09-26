@@ -74,16 +74,16 @@ export const createRequirement = async (req, res) => {
 
     const { title, description, jdText, requiredTrade } = req.body;
 
-    if (!title || !description || !requiredTrade) {
+    if (typeof title !== 'string' || typeof description !== 'string' || typeof requiredTrade !== 'string' || !title.trim() || !description.trim() || !requiredTrade.trim()) {
       return res.status(400).json({ success: false, message: 'Title, description, and requiredTrade are required' });
     }
 
     const requirement = await prisma.workRequirement.create({
       data: {
-        title,
-        description,
-        jdText,
-        requiredTrade,
+        title: title.trim(),
+        description: description.trim(),
+        jdText: typeof jdText === 'string' ? jdText.trim() : null,
+        requiredTrade: requiredTrade.trim(),
         officerId
       }
     });
@@ -100,7 +100,12 @@ export const updateRequirement = async (req, res) => {
   try {
     const { id } = req.params;
     const officerId = req.user.officerProfile?.id;
+    if (!officerId && req.user.role !== 'ADMIN') return res.status(403).json({ success: false, message: 'Officer profile not found' });
     const { title, description, jdText, requiredTrade } = req.body;
+    if (title !== undefined && (typeof title !== 'string' || !title.trim())) return res.status(400).json({ success: false, message: 'Title must be a non-empty string' });
+    if (description !== undefined && (typeof description !== 'string' || !description.trim())) return res.status(400).json({ success: false, message: 'Description must be a non-empty string' });
+    if (requiredTrade !== undefined && (typeof requiredTrade !== 'string' || !requiredTrade.trim())) return res.status(400).json({ success: false, message: 'requiredTrade must be a non-empty string' });
+    if (jdText !== undefined && jdText !== null && typeof jdText !== 'string') return res.status(400).json({ success: false, message: 'jdText must be a string' });
 
     const existing = await prisma.workRequirement.findUnique({ where: { id } });
     if (!existing) {
@@ -113,10 +118,10 @@ export const updateRequirement = async (req, res) => {
     const requirement = await prisma.workRequirement.update({
       where: { id },
       data: {
-        title: title !== undefined ? title : existing.title,
-        description: description !== undefined ? description : existing.description,
-        jdText: jdText !== undefined ? jdText : existing.jdText,
-        requiredTrade: requiredTrade !== undefined ? requiredTrade : existing.requiredTrade
+        title: title !== undefined ? title.trim() : existing.title,
+        description: description !== undefined ? description.trim() : existing.description,
+        jdText: jdText !== undefined ? (jdText === null ? null : jdText.trim()) : existing.jdText,
+        requiredTrade: requiredTrade !== undefined ? requiredTrade.trim() : existing.requiredTrade
       }
     });
 
@@ -132,6 +137,7 @@ export const deleteRequirement = async (req, res) => {
   try {
     const { id } = req.params;
     const officerId = req.user.officerProfile?.id;
+    if (!officerId && req.user.role !== 'ADMIN') return res.status(403).json({ success: false, message: 'Officer profile not found' });
 
     const existing = await prisma.workRequirement.findUnique({ where: { id } });
     if (!existing) {

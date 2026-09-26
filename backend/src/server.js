@@ -14,18 +14,22 @@ import shortlistRoutes from './routes/shortlistRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5001;
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+const defaultOrigins = ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000', 'http://127.0.0.1:5173'];
+const allowedOrigins = process.env.CLIENT_URL
+  ? process.env.CLIENT_URL.split(',').map((origin) => origin.trim()).filter(Boolean)
+  : defaultOrigins;
 
 app.use(cors({
-  origin: function (origin, callback) {
-    callback(null, true);
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') return callback(null, true);
+    return callback(new Error('Origin is not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 app.use((req, res, next) => {
@@ -65,7 +69,7 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`🚀 Hiring Portal Backend running on http://localhost:${PORT}`);
-  console.log(`📡 Connected client allowed from: ${CLIENT_URL}`);
+  console.log(`📡 Connected client allowed from: ${allowedOrigins.join(', ')}`);
 });
 
 export default app;
