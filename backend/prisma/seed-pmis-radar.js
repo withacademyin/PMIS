@@ -439,9 +439,7 @@ async function seed() {
   for (let idx = 0; idx < postingsData.length; idx++) {
     const post = postingsData[idx];
     const postingId = `PMIS-${String(idx + 1).padStart(4, '0')}`;
-    const record = await prisma.internshipPosting.create({
-      data: {
-        postingId,
+    const postData = {
         roleTitle: post.title,
         companyName: post.companyName,
         sector: post.sector,
@@ -466,11 +464,16 @@ async function seed() {
           { date: addDays(post.windowOpenDate, 7).toISOString().split('T')[0], count: Math.floor(post.applications * 0.6) },
           { date: now.toISOString().split('T')[0], count: post.applications }
         ]
-      }
+    };
+    const record = await prisma.internshipPosting.upsert({
+      where: { postingId },
+      update: postData,
+      create: { postingId, ...postData }
     });
     createdPostings.push(record);
 
-    // Initial ApplicationSnapshot
+    // Clean up old snapshots for this posting before re-creating
+    await prisma.applicationSnapshot.deleteMany({ where: { postingId: record.id, source: "SYSTEM" } });
     await prisma.applicationSnapshot.create({
       data: {
         postingId: record.id,
@@ -501,6 +504,7 @@ async function seed() {
       reason = `Application coverage below target (current: ${Math.round(coverage * 100)}%)`;
     }
 
+    await prisma.opportunityRiskSnapshot.deleteMany({ where: { postingId: record.id } });
     await prisma.opportunityRiskSnapshot.create({
       data: {
         postingId: record.id,
@@ -576,6 +580,7 @@ async function seed() {
       }
     });
 
+    await prisma.actionPlanNote.deleteMany({ where: { itemId: itemA.id } });
     await prisma.actionPlanNote.create({
       data: {
         itemId: itemA.id,
@@ -610,6 +615,9 @@ async function seed() {
   console.log('9. Seeding Illustrative Outcome Observations...');
   const sampleTargeted = createdPostings.slice(0, 5);
   const sampleUntargeted = createdPostings.slice(5, 10);
+
+  // Clean up old outcome observations from demo data
+  await prisma.outcomeObservation.deleteMany({ where: { source: "DEMO_BENCHMARK" } });
 
   for (const post of sampleTargeted) {
     await prisma.outcomeObservation.create({
