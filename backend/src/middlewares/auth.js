@@ -42,6 +42,11 @@ export async function requireAuth(req, res, next) {
             district: true,
             department: true,
             isVerified: true,
+            officerDistricts: {
+              select: {
+                districtCode: true,
+              },
+            },
           },
         },
       },
@@ -49,6 +54,12 @@ export async function requireAuth(req, res, next) {
 
     if (!user) {
       return res.status(401).json({ success: false, message: 'Not authorized, user not found' });
+    }
+
+    if (user.officerProfile?.officerDistricts) {
+      user.assignedDistricts = user.officerProfile.officerDistricts.map((od) => od.districtCode);
+    } else {
+      user.assignedDistricts = [];
     }
 
     req.user = user;

@@ -11,6 +11,7 @@ import workerRoutes from './routes/workerRoutes.js';
 import officerRoutes from './routes/officerRoutes.js';
 import workRequirementRoutes from './routes/workRequirementRoutes.js';
 import shortlistRoutes from './routes/shortlistRoutes.js';
+import radarRoutes from './routes/radarRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -54,6 +55,8 @@ app.use('/api/v1/requirements', workRequirementRoutes);
 app.use('/api/requirements', workRequirementRoutes);
 app.use('/api/v1/shortlists', shortlistRoutes);
 app.use('/api/shortlists', shortlistRoutes);
+app.use('/api/v1/radar', radarRoutes);
+app.use('/api/radar', radarRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found` });

@@ -214,6 +214,101 @@ export const api = {
     },
     body: JSON.stringify(data),
   }).then(handleResponse),
+
+  // ==========================================
+  // PMIS Opportunity Radar Endpoints
+  // ==========================================
+  getRadarDistricts: () => fetch(`${BASE_URL}/radar/districts`, {
+    headers: getAuthHeader()
+  }).then(handleResponse),
+
+  getRadarDashboard: (districtCode) => {
+    const q = districtCode ? `?districtCode=${encodeURIComponent(districtCode)}` : '';
+    return fetch(`${BASE_URL}/radar/dashboard/summary${q}`, {
+      headers: getAuthHeader()
+    }).then(handleResponse);
+  },
+
+  getRadarMap: (districtCode) => {
+    const q = districtCode ? `?districtCode=${encodeURIComponent(districtCode)}` : '';
+    return fetch(`${BASE_URL}/radar/map${q}`, {
+      headers: getAuthHeader()
+    }).then(handleResponse);
+  },
+
+  getRadarOpportunities: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return fetch(`${BASE_URL}/radar/opportunities${query ? `?${query}` : ''}`, {
+      headers: getAuthHeader()
+    }).then(handleResponse);
+  },
+
+  getRadarOpportunityDetail: (id, catchmentMinutes = 60) => {
+    return fetch(`${BASE_URL}/radar/opportunities/${id}?catchmentMinutes=${catchmentMinutes}`, {
+      headers: getAuthHeader()
+    }).then(handleResponse);
+  },
+
+  getRadarInstitutions: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return fetch(`${BASE_URL}/radar/institutions${query ? `?${query}` : ''}`, {
+      headers: getAuthHeader()
+    }).then(handleResponse);
+  },
+
+  getRadarInstitutionDetail: (id) => {
+    return fetch(`${BASE_URL}/radar/institutions/${id}`, {
+      headers: getAuthHeader()
+    }).then(handleResponse);
+  },
+
+  generateRadarBulletin: (data) => fetch(`${BASE_URL}/radar/bulletins/generate`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeader()
+    },
+    body: JSON.stringify(data)
+  }).then(handleResponse),
+
+  planRadarCamp: (data) => fetch(`${BASE_URL}/radar/camps/plan`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeader()
+    },
+    body: JSON.stringify(data)
+  }).then(handleResponse),
+
+  getRadarActionPlan: (districtCode, weekIdentifier) => {
+    const params = new URLSearchParams();
+    if (districtCode) params.append('districtCode', districtCode);
+    if (weekIdentifier) params.append('weekIdentifier', weekIdentifier);
+    return fetch(`${BASE_URL}/radar/action-plan?${params.toString()}`, {
+      headers: getAuthHeader()
+    }).then(handleResponse);
+  },
+
+  toggleRadarActionPlanItem: (id) => fetch(`${BASE_URL}/radar/action-plan/${id}/toggle`, {
+    method: 'PATCH',
+    headers: getAuthHeader()
+  }).then(handleResponse),
+
+  addRadarActionPlanNote: (id, noteText) => fetch(`${BASE_URL}/radar/action-plan/${id}/notes`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeader()
+    },
+    body: JSON.stringify({ noteText })
+  }).then(handleResponse),
+
+  getRadarOutcomes: (districtCode) => {
+    const q = districtCode ? `?districtCode=${encodeURIComponent(districtCode)}` : '';
+    return fetch(`${BASE_URL}/radar/outcomes${q}`, {
+      headers: getAuthHeader()
+    }).then(handleResponse);
+  },
 };
 
 export default api;

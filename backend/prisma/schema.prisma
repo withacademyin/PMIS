@@ -1,16 +1,15 @@
 datasource db {
-  provider   = "postgresql"
-  url        = env("DATABASE_URL")
-  directUrl  = env("DIRECT_URL")
-  extensions = [vector, postgis]
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["postgresqlExtensions"]
+  provider = "prisma-client-js"
 }
 
 enum Role {
+  LEARNER
   WORKER
   OFFICER
   ADMIN
@@ -38,6 +37,31 @@ enum PlacementStatus {
   CANCELLED
 }
 
+enum InstitutionType {
+  ITI
+  POLYTECHNIC
+  COLLEGE
+}
+
+enum LocationConfidence {
+  VERIFIED
+  APPROXIMATE
+  UNVERIFIED
+}
+
+enum MatchStrength {
+  EXACT
+  RELATED
+  GENERIC
+}
+
+enum OpportunityRisk {
+  HIGH
+  MEDIUM
+  LOW
+  CLOSED
+}
+
 model SystemSettings {
   id                  Int      @id @default(1)
   allowedITIs         String[] @default([])
@@ -56,30 +80,307 @@ model User {
   officerProfile OfficerProfile?
 }
 
-model ITI {
-  id           String                               @id @default(uuid())
-  name         String
-  code         String?
-  category     String?
-  address      String?
-  pincode      String?
-  district     String
-  state        String
-  phone        String?
-  email        String?
-  sourcePage   Int?
-  ncvtDetailUrl String?
-  trades       String[]                             @default([])
-  tradesDataStatus String?
-  isGovernment Boolean                              @default(true)
-  location     Unsupported("geography(Point,4326)")?
-  description  String?
-  status       String                               @default("ACTIVE")
-  workers      WorkerProfile[]
-  recommendations ITIRecommendation[]
-  createdAt    DateTime                             @default(now())
-  updatedAt    DateTime                             @updatedAt
+// ==========================================
+// GEOGRAPHY & DISTRICT CONFIGURATION
+// ==========================================
+
+model State {
+  code      String     @id // e.g. "UP"
+  name      String     // e.g. "Uttar Pradesh"
+  districts District[]
+  status    String     @default("ACTIVE")
+  createdAt DateTime   @default(now())
 }
+
+model District {
+  code                String                @id // e.g. "GORAKHPUR"
+  name                String                // e.g. "Gorakhpur"
+  stateCode           String
+  state               State                 @relation(fields: [stateCode], references: [code])
+  localLanguage       String                @default("Hindi")
+  lowRegistrationFlag Boolean               @default(false)
+  boundary            Json?                 // GeoJSON polygon boundary
+  status              String                @default("ACTIVE")
+  institutions        ITI[]
+  postings            InternshipPosting[]
+  officerDistricts    OfficerDistrict[]
+  configurations      DistrictConfiguration?
+  actionPlans         ActionPlanItem[]
+  createdAt           DateTime              @default(now())
+}
+
+model DistrictConfiguration {
+  id                  String   @id @default(uuid())
+  districtCode        String   @unique
+  district            District @relation(fields: [districtCode], references: [code])
+  targetMultiplier    Float    @default(3.0)
+  highRiskDaysLimit   Int      @default(14)
+  highRiskCoverageCap Float    @default(0.5)
+  defaultCatchmentMin Int      @default(60)
+  timezone            String   @default("Asia/Kolkata")
+  updatedAt           DateTime @updatedAt
+}
+
+model OfficerDistrict {
+  id               String         @id @default(uuid())
+  officerProfileId String
+  officerProfile   OfficerProfile @relation(fields: [officerProfileId], references: [id], onDelete: Cascade)
+  districtCode     String
+  district         District       @relation(fields: [districtCode], references: [code])
+
+  @@unique([officerProfileId, districtCode])
+}
+
+// ==========================================
+// INSTITUTION MASTER & PROGRAMMES
+// ==========================================
+
+model ITI {
+  id                 String                               @id @default(uuid())
+  name               String
+  code               String?
+  category           String?
+  address            String?
+  pincode            String?
+  district           String
+  state              String
+  districtCode       String?
+  districtRel        District?                            @relation(fields: [districtCode], references: [code])
+  type               InstitutionType                      @default(ITI)
+  locationConfidence LocationConfidence                   @default(APPROXIMATE)
+  contactName        String?
+  contactRole        String?
+  contactPhone       String?
+  latitude           Float?
+  longitude          Float?
+  phone              String?
+  email              String?
+  sourcePage         Int?
+  ncvtDetailUrl      String?
+  trades             String[]                             @default([])
+  tradesDataStatus   String?
+  isGovernment       Boolean                              @default(true)
+  location           String?
+  description        String?
+  status             String                               @default("ACTIVE")
+  workers            WorkerProfile[]
+  recommendations    ITIRecommendation[]
+  OfficerInvitation  OfficerInvitation[]
+  programmes         InstitutionProgramme[]
+  travelTimes        TravelTime[]
+  camps              CampPlan[]
+  createdAt          DateTime                             @default(now())
+  updatedAt          DateTime                             @updatedAt
+
+  @@index([districtCode])
+  @@index([type])
+}
+
+model InstitutionProgramme {
+  id            String                          @id @default(uuid())
+  institutionId String
+  institution   ITI                             @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  programmeCode String                          // e.g. "ITI_ELECTRICIAN", "DIPLOMA_MECHANICAL"
+  programmeName String                          // e.g. "Electrician", "Mechanical Engineering"
+  seats         Int                             @default(0)
+  status        String                          @default("ACTIVE")
+  mappings      QualificationProgrammeMapping[]
+  createdAt     DateTime                        @default(now())
+  updatedAt     DateTime                        @updatedAt
+
+  @@unique([institutionId, programmeCode])
+}
+
+// ==========================================
+// QUALIFICATION MASTER & MAPPINGS
+// ==========================================
+
+model Qualification {
+  code     String                          @id // e.g. "ITI_ELECTRICIAN"
+  label    String                          // e.g. "ITI - Electrician"
+  category String                          // e.g. "VOCATIONAL", "DIPLOMA", "GRADUATE"
+  status   String                          @default("ACTIVE")
+  mappings QualificationProgrammeMapping[]
+  postings InternshipPosting[]
+}
+
+model QualificationProgrammeMapping {
+  id                String               @id @default(uuid())
+  qualificationCode String
+  qualification     Qualification        @relation(fields: [qualificationCode], references: [code], onDelete: Cascade)
+  programmeId       String
+  programme         InstitutionProgramme @relation(fields: [programmeId], references: [id], onDelete: Cascade)
+  matchStrength     MatchStrength        @default(EXACT)
+  status            String               @default("ACTIVE")
+
+  @@unique([qualificationCode, programmeId])
+}
+
+// ==========================================
+// INTERNSHIP POSTINGS & RISK ENGINE
+// ==========================================
+
+model InternshipPosting {
+  id                  String                    @id @default(uuid())
+  postingId           String                    @unique // e.g. "DEMO-0007"
+  roleTitle           String
+  companyName         String
+  sector              String
+  qualificationCode   String
+  qualification       Qualification             @relation(fields: [qualificationCode], references: [code])
+  openings            Int
+  applications        Int                       @default(0)
+  windowOpenDate      DateTime
+  windowCloseDate     DateTime
+  durationMonths      Int                       @default(6)
+  monthlySupport      Float                     @default(0)
+  address             String
+  districtCode        String
+  district            District                  @relation(fields: [districtCode], references: [code])
+  stateCode           String                    @default("UP")
+  location            String?
+  latitude            Float?
+  longitude           Float?
+  portalLink          String                    @default("https://pminternship.mca.gov.in/")
+  status              String                    @default("OPEN")
+  source              String                    @default("DEMO")
+  sourceReference     String?
+  applicationHistory  Json                      @default("[]")
+  snapshots           ApplicationSnapshot[]
+  riskSnapshots       OpportunityRiskSnapshot[]
+  travelTimes         TravelTime[]
+  bulletins           Bulletin[]
+  camps               CampPlan[]
+  actionPlanItems     ActionPlanItem[]
+  outcomeObservations OutcomeObservation[]
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+
+  @@index([districtCode, status])
+  @@index([windowCloseDate])
+}
+
+model ApplicationSnapshot {
+  id         String            @id @default(uuid())
+  postingId  String
+  posting    InternshipPosting @relation(fields: [postingId], references: [id], onDelete: Cascade)
+  count      Int
+  observedAt DateTime          @default(now())
+  source     String            @default("SYSTEM")
+}
+
+model OpportunityRiskSnapshot {
+  id                 String            @id @default(uuid())
+  postingId          String
+  posting            InternshipPosting @relation(fields: [postingId], references: [id], onDelete: Cascade)
+  riskLevel          OpportunityRisk
+  reason             String
+  targetApplications Int
+  coverage           Float
+  daysLeft           Int
+  calculatedAt       DateTime          @default(now())
+
+  @@index([postingId, calculatedAt])
+}
+
+model TravelTime {
+  id                String            @id @default(uuid())
+  postingId         String
+  posting           InternshipPosting @relation(fields: [postingId], references: [id], onDelete: Cascade)
+  institutionId     String
+  institution       ITI               @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  roadTravelMinutes Int
+  isApproximate     Boolean           @default(false)
+  source            String            @default("PRECOMPUTED")
+  updatedAt         DateTime          @updatedAt
+
+  @@unique([postingId, institutionId])
+}
+
+// ==========================================
+// MOBILISATION & OUTCOME MONITORING
+// ==========================================
+
+model Bulletin {
+  id             String            @id @default(uuid())
+  postingId      String
+  posting        InternshipPosting @relation(fields: [postingId], references: [id], onDelete: Cascade)
+  language       String            @default("Hindi")
+  headline       String
+  bodyText       String
+  qrCodeUrl      String?
+  aspectRatio    String            @default("1:1")
+  generatedBrief Json?
+  createdBy      String?
+  createdAt      DateTime          @default(now())
+}
+
+model CampPlan {
+  id               String            @id @default(uuid())
+  postingId        String
+  posting          InternshipPosting @relation(fields: [postingId], references: [id], onDelete: Cascade)
+  institutionId    String
+  institution      ITI               @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  campName         String
+  proposedDate     DateTime
+  proposedTime     String
+  coordinatorName  String
+  coordinatorPhone String
+  address          String
+  notes            String?
+  generatedBrief   Json?
+  status           String            @default("PLANNED")
+  createdBy        String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+}
+
+model ActionPlanItem {
+  id                String            @id @default(uuid())
+  districtCode      String
+  district          District          @relation(fields: [districtCode], references: [code])
+  weekIdentifier    String
+  postingId         String
+  posting           InternshipPosting @relation(fields: [postingId], references: [id], onDelete: Cascade)
+  recommendedAction String
+  targetInstitutions Json
+  isDone            Boolean           @default(false)
+  completedAt       DateTime?
+  completedBy       String?
+  notes             ActionPlanNote[]
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@unique([districtCode, weekIdentifier, postingId])
+}
+
+model ActionPlanNote {
+  id         String         @id @default(uuid())
+  itemId     String
+  actionItem ActionPlanItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  authorName String
+  noteText   String
+  createdAt  DateTime       @default(now())
+}
+
+model OutcomeObservation {
+  id                    String            @id @default(uuid())
+  postingId             String
+  posting               InternshipPosting @relation(fields: [postingId], references: [id], onDelete: Cascade)
+  isTargeted            Boolean           @default(false)
+  observationDate       DateTime          @default(now())
+  applicationsTotal     Int               @default(0)
+  catchmentApplications Int               @default(0)
+  offerCount            Int               @default(0)
+  acceptanceCount       Int               @default(0)
+  joiningCount          Int               @default(0)
+  isIllustrative        Boolean           @default(true)
+  source                String            @default("DEMO")
+}
+
+// ==========================================
+// EXISTING WORKER & RECRUITMENT MODELS
+// ==========================================
 
 model WorkerProfile {
   id                 String                               @id @default(uuid())
@@ -90,7 +391,7 @@ model WorkerProfile {
   iti                ITI?                                 @relation(fields: [itiId], references: [id])
   trade              String
   certificationGrade String?
-  location           Unsupported("geography(Point,4326)")?
+  location           String?
   availabilityStatus String                               @default("AVAILABLE")
   experienceYears    Int                                  @default(0)
   isVerified         Boolean                              @default(false)
@@ -109,22 +410,24 @@ model WorkerProfile {
 }
 
 model OfficerProfile {
-  id           String            @id @default(uuid())
-  userId       String            @unique
-  user         User              @relation(fields: [userId], references: [id])
-  name         String?
-  district     String
-  department   String?
-  isVerified   Boolean           @default(true)
-  requirements WorkRequirement[]
-  shortlists   Shortlist[]
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  id               String            @id @default(uuid())
+  userId           String            @unique
+  user             User              @relation(fields: [userId], references: [id])
+  name             String?
+  district         String
+  department       String?
+  isVerified       Boolean           @default(true)
+  requirements     WorkRequirement[]
+  shortlists       Shortlist[]
+  officerDistricts OfficerDistrict[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 }
 
 model OfficerInvitation {
   id         String                  @id @default(uuid())
-  district   String
+  itiId      String?
+  district   String?
   email      String
   role       Role                    @default(OFFICER)
   tokenHash  String
@@ -134,20 +437,21 @@ model OfficerInvitation {
   acceptedAt DateTime?
   createdAt  DateTime                @default(now())
   updatedAt  DateTime                @updatedAt
+  ITI        ITI?                    @relation(fields: [itiId], references: [id])
 }
 
 model WorkRequirement {
-  id            String         @id @default(uuid())
-  title         String
-  description   String
-  jdText        String?
-  officerId     String
-  officer       OfficerProfile @relation(fields: [officerId], references: [id])
-  requiredTrade String
-  shortlists    Shortlist[]
+  id              String              @id @default(uuid())
+  title           String
+  description     String
+  jdText          String?
+  officerId       String
+  officer         OfficerProfile      @relation(fields: [officerId], references: [id])
+  requiredTrade   String
+  shortlists      Shortlist[]
   recommendations ITIRecommendation[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
 }
 
 model ITIRecommendation {
@@ -208,11 +512,11 @@ model AuditLog {
 model TradeSkill {
   id             Int                    @id @default(autoincrement())
   canonical_name String
-  type           String // skill, language, project_type, certification
+  type           String
   category       String?
   description    String?
   aliases        String[]
-  embedding      Unsupported("vector")?
+  embedding      String?
   is_active      Boolean                @default(true)
   workerSkills   WorkerSkill[]
 }

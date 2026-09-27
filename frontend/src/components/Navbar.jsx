@@ -62,15 +62,31 @@ export function Navbar() {
                   >
                     Worker Radius Search
                   </Link>
+                  <Link
+                    href="/dashboard/radar"
+                    className="px-3 py-1.5 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 font-semibold transition-colors flex items-center gap-1.5"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
+                    PMIS Radar
+                  </Link>
                 </>
               )}
               {role === 'admin' && (
-                <Link
-                  href="/dashboard/admin"
-                  className="px-4 py-2 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors"
-                >
-                  Admin Verification
-                </Link>
+                <>
+                  <Link
+                    href="/dashboard/admin"
+                    className="px-4 py-2 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                  >
+                    Admin Verification
+                  </Link>
+                  <Link
+                    href="/dashboard/radar"
+                    className="px-3 py-1.5 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 font-semibold transition-colors flex items-center gap-1.5"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
+                    PMIS Radar
+                  </Link>
+                </>
               )}
             </>
           ) : (
