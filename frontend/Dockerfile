@@ -15,6 +15,8 @@ COPY . .
 # Environment variables must be present at build time
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ARG BACKEND_API_URL
+ENV BACKEND_API_URL=${BACKEND_API_URL}
 ENV STANDALONE=1
 
 RUN npm run build
@@ -26,6 +28,7 @@ WORKDIR /app
 ENV NODE_ENV production
 # Accept the variable at runtime
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV BACKEND_API_URL=${BACKEND_API_URL}
 
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
