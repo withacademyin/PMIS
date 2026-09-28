@@ -33,6 +33,9 @@ export function RadarView() {
   // Preselected opportunity for Camp Planner or Bulletin Generator
   const [preselectedOpp, setPreselectedOpp] = useState(null);
 
+  // Filters to pass to RadarOpportunities
+  const [opportunityFilters, setOpportunityFilters] = useState(null);
+
   const [liveOpportunities, setLiveOpportunities] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -189,13 +192,17 @@ export function RadarView() {
               onSelectOpportunity={handleOpenOpportunityModal}
               onPlanCamp={handlePlanCamp}
               onShareBulletin={handleShareBulletin}
-              onNavigateToNav={(nav) => setActiveNav(nav)}
+              onNavigateToNav={(nav, filters) => {
+                setOpportunityFilters(filters || null);
+                setActiveNav(nav);
+              }}
             />
           )}
 
           {activeNav === 'opportunities' && (
             <RadarOpportunities
               opportunities={liveOpportunities}
+              initialFilters={opportunityFilters}
               onSelectOpportunity={handleOpenOpportunityModal}
               onPlanCamp={handlePlanCamp}
               onShareBulletin={handleShareBulletin}

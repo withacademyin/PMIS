@@ -17,10 +17,10 @@ import {
   ChevronRight
 } from 'lucide-react';
 
-export function RadarOpportunities({ opportunities, onSelectOpportunity, onPlanCamp, onShareBulletin }) {
+export function RadarOpportunities({ opportunities, initialFilters, onSelectOpportunity, onPlanCamp, onShareBulletin }) {
   const [search, setSearch] = useState('');
-  const [riskFilter, setRiskFilter] = useState('ALL');
-  const [deadlineFilter, setDeadlineFilter] = useState('ALL'); // ALL, 7, 14, 30
+  const [riskFilter, setRiskFilter] = useState(initialFilters?.risk || 'ALL');
+  const [deadlineFilter, setDeadlineFilter] = useState(initialFilters?.deadline || 'ALL'); // ALL, 7, 14, 30
 
   // Filter and sort opportunities (High -> Medium -> Low, then fewest days left)
   const filteredOpportunities = opportunities.filter((op) => {

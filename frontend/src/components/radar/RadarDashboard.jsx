@@ -209,7 +209,7 @@ export function RadarDashboard({
 
         {/* Card 2: High Risk */}
         <div
-          onClick={() => onNavigateToNav?.('opportunities')}
+          onClick={() => onNavigateToNav?.('opportunities', { risk: 'HIGH' })}
           className="bg-white p-5 rounded-2xl border border-rose-200 shadow-xs hover:border-rose-300 transition-all cursor-pointer group bg-gradient-to-br from-white to-rose-50/30"
         >
           <div className="flex items-center justify-between text-rose-600 mb-2">
@@ -258,7 +258,7 @@ export function RadarDashboard({
 
         {/* Card 4: Closing in Next 7 Days */}
         <div
-          onClick={() => onNavigateToNav?.('opportunities')}
+          onClick={() => onNavigateToNav?.('opportunities', { deadline: '7' })}
           className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:border-slate-300 transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between text-slate-500 mb-2">
