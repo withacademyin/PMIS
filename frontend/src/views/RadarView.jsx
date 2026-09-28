@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import RadarSidebar from '@/components/radar/RadarSidebar';
@@ -15,10 +15,16 @@ import RadarProfile from '@/components/radar/RadarProfile';
 import OpportunityDetailModal from '@/components/radar/OpportunityDetailModal';
 import {
   INSTITUTIONS,
+  OPPORTUNITIES,
   PRIORITY_ACTIONS,
   KPI_METRICS,
   NODAL_OFFICER_PROFILE
 } from '@/data/radarData';
+import {
+  normalizeInstitution,
+  matchOpportunityInstitutions,
+  computeInstitutionsWithMatchCounts
+} from '@/lib/opportunityMatcher';
 import { Menu, X } from 'lucide-react';
 
 export function RadarView() {
@@ -34,73 +40,155 @@ export function RadarView() {
   const [preselectedOpp, setPreselectedOpp] = useState(null);
 
   const [liveOpportunities, setLiveOpportunities] = useState([]);
+  const [liveInstitutions, setLiveInstitutions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const loadOpportunities = async () => {
-      try {
-        setIsLoading(true);
-        const res = await api.getRequirements();
-        if (res.success && res.data) {
-          const mapped = res.data.map((req) => {
-            // Parse jdText for company and stipend
-            const jdLines = (req.jdText || '').split('\n');
-            const companyLine = jdLines.find(l => l.startsWith('Company:')) || 'Company: Unknown';
-            const stipendLine = jdLines.find(l => l.startsWith('Stipend:')) || 'Stipend: N/A';
-            const districtLine = jdLines.find(l => l.startsWith('District:')) || 'District: Gorakhpur';
-            const latLine = jdLines.find(l => l.startsWith('Lat:')) || 'Lat: 26.75';
-            const lngLine = jdLines.find(l => l.startsWith('Lng:')) || 'Lng: 83.38';
-            const riskLine = jdLines.find(l => l.startsWith('Risk:')) || 'Risk: MEDIUM';
-            
-            const company = companyLine.replace('Company:', '').trim();
-            const stipend = stipendLine.replace('Stipend:', '').trim();
-            const district = districtLine.replace('District:', '').trim();
-            const lat = parseFloat(latLine.replace('Lat:', '').trim());
-            const lng = parseFloat(lngLine.replace('Lng:', '').trim());
-            const risk = riskLine.replace('Risk:', '').trim();
-            
-            return {
-              id: req.id,
-              roleTitle: req.title,
-              company: company,
-              sector: 'General',
-              qualification: `ITI - ${req.requiredTrade}`,
-              openings: Math.floor(Math.random() * 15) + 5, // mock openings since not in schema
-              applications: Math.floor(Math.random() * 5),
-              daysLeft: Math.floor(Math.random() * 30) + 1,
-              closingDate: 'TBD',
-              openingDate: new Date(req.createdAt).toLocaleDateString(),
-              duration: '12 Months',
-              monthlyStipend: stipend,
-              address: district,
-              district: district,
-              coordinates: { lat, lng },
-              risk: risk,
-              riskReason: 'Demo generated risk',
-              recommendedAction: null,
-              catchmentInstitutions: {}
-            };
-          });
-          setLiveOpportunities(mapped);
-        }
-      } catch (error) {
-        console.error('Failed to load opportunities:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    if (user) {
-      loadOpportunities();
-    }
-  }, [user]);
-
   // Active officer profile data
-  const officerProfile = {
+  const officerProfile = useMemo(() => ({
     ...NODAL_OFFICER_PROFILE,
     name: user?.officerProfile?.name || user?.name || NODAL_OFFICER_PROFILE.name,
     email: user?.email || NODAL_OFFICER_PROFILE.email,
     district: user?.officerProfile?.district || NODAL_OFFICER_PROFILE.district,
-  };
+  }), [user]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadRadarData = async () => {
+      try {
+        setIsLoading(true);
+        const targetDistrict = officerProfile.district || 'Gorakhpur';
+
+        // Concurrently fetch requirements and institutes
+        const [reqRes, itiRes] = await Promise.all([
+          api.getRequirements().catch((err) => {
+            console.warn('Live requirements API unavailable, using fallback data:', err);
+            return { success: false };
+          }),
+          api.getITIs({ district: targetDistrict }).catch((err) => {
+            console.warn('District ITIs API unavailable:', err);
+            return { success: false };
+          }),
+        ]);
+
+        let rawItis = [];
+        if (itiRes?.success && Array.isArray(itiRes.itis) && itiRes.itis.length > 0) {
+          rawItis = itiRes.itis;
+        } else {
+          // If specific district returned empty or unauthenticated, fetch broader ITIs
+          const fallbackItisRes = await api.getITIs('?all=true&limit=60').catch(() => ({ success: false }));
+          if (fallbackItisRes?.success && Array.isArray(fallbackItisRes.itis) && fallbackItisRes.itis.length > 0) {
+            rawItis = fallbackItisRes.itis;
+          } else {
+            rawItis = INSTITUTIONS;
+          }
+        }
+
+        const normalizedItis = rawItis.map(normalizeInstitution).filter(Boolean);
+
+        // Process opportunities and dynamically match against loaded ITIs
+        let mappedOpps = [];
+        if (reqRes?.success && Array.isArray(reqRes.data) && reqRes.data.length > 0) {
+          mappedOpps = reqRes.data.map((req) => {
+            const jdLines = (req.jdText || '').split('\n');
+            const companyLine = jdLines.find((l) => l.startsWith('Company:')) || 'Company: Industrial Partner';
+            const stipendLine = jdLines.find((l) => l.startsWith('Stipend:')) || 'Stipend: ₹8,000 / month';
+            const districtLine = jdLines.find((l) => l.startsWith('District:')) || `District: ${targetDistrict}`;
+            const latLine = jdLines.find((l) => l.startsWith('Lat:')) || 'Lat: 26.75';
+            const lngLine = jdLines.find((l) => l.startsWith('Lng:')) || 'Lng: 83.38';
+            const riskLine = jdLines.find((l) => l.startsWith('Risk:')) || 'Risk: MEDIUM';
+
+            const company = companyLine.replace('Company:', '').trim();
+            const stipend = stipendLine.replace('Stipend:', '').trim();
+            const district = districtLine.replace('District:', '').trim();
+            const lat = parseFloat(latLine.replace('Lat:', '').trim()) || 26.75;
+            const lng = parseFloat(lngLine.replace('Lng:', '').trim()) || 83.38;
+            const risk = riskLine.replace('Risk:', '').trim();
+
+            const oppObj = {
+              id: req.id,
+              roleTitle: req.title,
+              company,
+              sector: 'Manufacturing & Engineering',
+              qualification: req.requiredTrade ? `ITI - ${req.requiredTrade}` : 'ITI - Technical',
+              openings: Math.floor(Math.random() * 12) + 6,
+              applications: Math.floor(Math.random() * 5),
+              daysLeft: Math.floor(Math.random() * 25) + 3,
+              closingDate: 'TBD',
+              openingDate: new Date(req.createdAt).toLocaleDateString(),
+              duration: '12 Months',
+              monthlyStipend: stipend,
+              address: `${district} Industrial Area`,
+              district,
+              coordinates: { lat, lng },
+              risk,
+              riskReason: `${risk} fill risk based on current applicant-to-opening ratio and deadline.`,
+            };
+
+            // Dynamic match against institutions
+            const matchResult = matchOpportunityInstitutions(oppObj, normalizedItis);
+            oppObj.catchmentInstitutions = matchResult.catchmentInstitutions;
+            oppObj.recommendedAction = matchResult.recommendedAction;
+
+            return oppObj;
+          });
+        } else {
+          // Dynamic match against baseline opportunities
+          mappedOpps = OPPORTUNITIES.map((opp) => {
+            const oppCopy = { ...opp };
+            const matchResult = matchOpportunityInstitutions(oppCopy, normalizedItis);
+            oppCopy.catchmentInstitutions = matchResult.catchmentInstitutions;
+            oppCopy.recommendedAction = matchResult.recommendedAction;
+            return oppCopy;
+          });
+        }
+
+        // Compute reverse match counts for each institution
+        const enrichedInstitutions = computeInstitutionsWithMatchCounts(
+          normalizedItis,
+          mappedOpps
+        );
+
+        if (isMounted) {
+          setLiveInstitutions(enrichedInstitutions);
+          setLiveOpportunities(mappedOpps);
+        }
+      } catch (error) {
+        console.error('Failed to load radar data:', error);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    loadRadarData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user, officerProfile.district]);
+
+  // Compute live KPI metrics
+  const liveKpiMetrics = useMemo(() => {
+    if (liveOpportunities.length === 0) return KPI_METRICS;
+    const highRiskCount = liveOpportunities.filter((o) => o.risk === 'HIGH').length;
+    const openingsAtRisk = liveOpportunities
+      .filter((o) => o.risk === 'HIGH')
+      .reduce((sum, o) => sum + (o.openings || 0), 0);
+    const totalOpenings = liveOpportunities.reduce((sum, o) => sum + (o.openings || 0), 0);
+    const totalApplications = liveOpportunities.reduce((sum, o) => sum + (o.applications || 0), 0);
+    const closingNext7Days = liveOpportunities.filter((o) => (o.daysLeft || 30) <= 7).length;
+
+    return {
+      openOpportunities: liveOpportunities.length,
+      highRisk: highRiskCount,
+      openingsAtRisk,
+      closingNext7Days,
+      totalOpenings,
+      totalApplications,
+      lastUpdated: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+      weekRange: KPI_METRICS.weekRange,
+    };
+  }, [liveOpportunities]);
 
   const handleOpenOpportunityModal = (opp) => {
     setSelectedOpportunity(opp);
@@ -124,8 +212,9 @@ export function RadarView() {
         <RadarSidebar
           activeNav={activeNav}
           onNavChange={(nav) => setActiveNav(nav)}
-          kpiMetrics={KPI_METRICS}
+          kpiMetrics={liveKpiMetrics}
           officerProfile={officerProfile}
+          institutionsCount={liveInstitutions.length}
           onLogout={logout}
         />
       </div>
@@ -151,8 +240,9 @@ export function RadarView() {
                 setActiveNav(nav);
                 setMobileSidebarOpen(false);
               }}
-              kpiMetrics={KPI_METRICS}
+              kpiMetrics={liveKpiMetrics}
               officerProfile={officerProfile}
+              institutionsCount={liveInstitutions.length}
               onLogout={logout}
             />
           </div>
@@ -175,7 +265,7 @@ export function RadarView() {
           </div>
 
           <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-            Gorakhpur, UP
+            {officerProfile.district}, UP
           </span>
         </div>
 
@@ -184,7 +274,7 @@ export function RadarView() {
           {activeNav === 'dashboard' && (
             <RadarDashboard
               opportunities={liveOpportunities}
-              institutions={INSTITUTIONS}
+              institutions={liveInstitutions}
               priorityActions={PRIORITY_ACTIONS}
               onSelectOpportunity={handleOpenOpportunityModal}
               onPlanCamp={handlePlanCamp}
@@ -204,6 +294,7 @@ export function RadarView() {
 
           {activeNav === 'institutions' && (
             <RadarInstitutions
+              institutions={liveInstitutions}
               opportunities={liveOpportunities}
               onPlanCamp={handlePlanCamp}
               onSelectOpportunity={handleOpenOpportunityModal}
@@ -221,7 +312,7 @@ export function RadarView() {
           {activeNav === 'camp-plans' && (
             <RadarCampPlans
               opportunities={liveOpportunities}
-              institutions={INSTITUTIONS}
+              institutions={liveInstitutions}
               preselectedOpportunity={preselectedOpp}
               nodalOfficer={officerProfile}
             />

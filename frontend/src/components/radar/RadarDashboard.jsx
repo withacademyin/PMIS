@@ -44,7 +44,9 @@ export function RadarDashboard({
     }
   }, [uniqueDistricts, selectedDistrict]);
 
-  const filteredOpportunities = opportunities.filter(op => op.district === selectedDistrict);
+  const filteredOpportunities = opportunities.filter(
+    (op) => !selectedDistrict || op.district?.toLowerCase() === selectedDistrict?.toLowerCase()
+  );
 
   // Dynamically compute priority actions based on filtered opportunities
   const dynamicPriorityActions = filteredOpportunities

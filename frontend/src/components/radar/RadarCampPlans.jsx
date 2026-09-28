@@ -28,7 +28,9 @@ export function RadarCampPlans({
   const activeOpp = opportunities.find((o) => o.id === selectedOppId) || opportunities[0];
 
   const defaultInst =
-    institutions.find((i) => i.id === 'INST-001') || institutions[0];
+    institutions.find((i) => i.id === preselectedOpportunity?.targetInstitution?.id) ||
+    institutions.find((i) => i.id === 'INST-001') ||
+    institutions[0];
 
   const [formData, setFormData] = useState({
     campName: `${activeOpp?.roleTitle || 'Internship'} Mobilisation Camp`,
@@ -46,6 +48,20 @@ export function RadarCampPlans({
       wifiHotspot: true,
     },
   });
+
+  useEffect(() => {
+    if (preselectedOpportunity?.targetInstitution?.id) {
+      setFormData((prev) => ({
+        ...prev,
+        institutionId: preselectedOpportunity.targetInstitution.id,
+      }));
+    } else if (!formData.institutionId && institutions.length > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        institutionId: institutions[0].id,
+      }));
+    }
+  }, [preselectedOpportunity, institutions, formData.institutionId]);
 
   const [briefGenerated, setBriefGenerated] = useState(false);
 
@@ -180,7 +196,7 @@ export function RadarCampPlans({
               >
                 {institutions.map((inst) => (
                   <option key={inst.id} value={inst.id}>
-                    {inst.name} ({inst.totalSeats} seats)
+                    {inst.name} ({inst.totalSeats ?? inst.strength ?? 120} seats)
                   </option>
                 ))}
               </select>

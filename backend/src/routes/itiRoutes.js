@@ -1,5 +1,5 @@
 import express from 'express';
-import { requireAuth, requireAdmin } from '../middlewares/auth.js';
+import { requireAuth, requireAdmin, optionalAuth } from '../middlewares/auth.js';
 import {
   createITI,
   getITIs,
@@ -14,15 +14,15 @@ import { getITIWorkers } from '../controllers/itiRecommendationController.js';
 
 const router = express.Router();
 
-router.use(requireAuth);
+// Read endpoints with optional authentication
+router.get('/top-nearby', optionalAuth, getTopNearbyITIs);
+router.get('/', optionalAuth, getITIs);
+router.get('/:id/workers', optionalAuth, getITIWorkers);
+router.get('/:id', optionalAuth, getITIById);
 
-// Public / Officer read endpoints
-router.get('/top-nearby', getTopNearbyITIs);
-router.get('/', getITIs);
-router.get('/:id/workers', getITIWorkers);
-router.post('/:id/contact', contactITI);
-router.get('/:id/contact-inquiries', getITIContactInquiries);
-router.get('/:id', getITIById);
+// Authenticated officer endpoints
+router.post('/:id/contact', requireAuth, contactITI);
+router.get('/:id/contact-inquiries', requireAuth, getITIContactInquiries);
 
 // Admin-only management endpoints
 router.post('/', requireAdmin, createITI);

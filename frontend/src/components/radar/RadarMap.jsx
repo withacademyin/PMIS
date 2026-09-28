@@ -217,11 +217,11 @@ export function RadarMap({
       // ── 3. Render Institutions Markers ──
       if (showInstitutions) {
         institutions.forEach((inst) => {
-          const lat = inst.coordinates?.lat;
-          const lng = inst.coordinates?.lng;
+          const lat = inst.coordinates?.lat ?? inst.lat;
+          const lng = inst.coordinates?.lng ?? inst.lng;
           if (!lat || !lng) return;
 
-          const isITI = inst.type === 'ITI';
+          const isITI = (inst.type || '').toUpperCase().includes('ITI');
           const badgeBg = isITI ? '#2563eb' : inst.type === 'Polytechnic' ? '#7c3aed' : '#0d9488';
 
           const iconHtml = `
@@ -637,17 +637,23 @@ export function RadarMap({
             ) : (
               <div className="mt-3 space-y-2 text-xs">
                 <div className="p-2 rounded bg-slate-50">
-                  <span className="font-semibold text-slate-700">Contact:</span> {activePin.contactPerson} (
-                  {activePin.designation})
+                  <span className="font-semibold text-slate-700">Contact:</span>{' '}
+                  {activePin.contactPerson || activePin.contacts?.tpo?.name || activePin.contacts?.principal?.name || 'Nodal Placement Officer'}{' '}
+                  ({activePin.designation || (activePin.contacts?.tpo?.name ? 'TPO' : 'Principal')})
                   <br />
-                  <span className="font-semibold text-slate-700">Phone:</span> {activePin.phone}
+                  <span className="font-semibold text-slate-700">Phone:</span>{' '}
+                  {activePin.phone || activePin.contacts?.tpo?.phone || activePin.contacts?.principal?.phone || 'N/A'}
                 </div>
                 <div className="text-[11px] text-slate-600">
                   <span className="font-semibold">Trades:</span>{' '}
-                  {activePin.programmes?.map((p) => `${p.trade} (${p.seats})`).join(', ')}
+                  {activePin.programmes
+                    ? activePin.programmes.map((p) => typeof p === 'string' ? p : `${p.trade} (${p.seats})`).join(', ')
+                    : Array.isArray(activePin.trades)
+                    ? activePin.trades.join(', ')
+                    : 'Engineering Trades'}
                 </div>
                 <div className="text-[11px] text-emerald-700 font-semibold">
-                  ✓ {activePin.matchableOpportunitiesCount} Matchable Openings nearby
+                  ✓ {activePin.matchableOpportunitiesCount ?? 0} Matchable Openings nearby
                 </div>
               </div>
             )}

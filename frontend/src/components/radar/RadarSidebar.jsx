@@ -26,6 +26,7 @@ export function RadarSidebar({
   officerProfile,
   onLogout,
   onSelectSubNav,
+  institutionsCount,
 }) {
   const [mobilisationOpen, setMobilisationOpen] = useState(
     activeNav === 'mobilisation' || activeNav === 'bulletins' || activeNav === 'camp-plans'
@@ -150,7 +151,7 @@ export function RadarSidebar({
                 : 'bg-slate-100 text-slate-600'
             }`}
           >
-            48
+            {institutionsCount ?? 48}
           </span>
         </button>
 

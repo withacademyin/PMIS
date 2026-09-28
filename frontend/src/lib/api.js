@@ -39,9 +39,17 @@ export const api = {
   }).then(handleResponse),
 
   // ITI Endpoints
-  getITIs: () => fetch(`${BASE_URL}/itis`, {
-    headers: getAuthHeader(),
-  }).then(handleResponse),
+  getITIs: (query = '') => {
+    let qString = '';
+    if (typeof query === 'string') {
+      qString = query ? (query.startsWith('?') ? query : `?${query}`) : '';
+    } else if (typeof query === 'object' && query !== null) {
+      qString = `?${new URLSearchParams(query).toString()}`;
+    }
+    return fetch(`${BASE_URL}/itis${qString}`, {
+      headers: getAuthHeader(),
+    }).then(handleResponse);
+  },
 
   createITI: (data) => fetch(`${BASE_URL}/itis`, {
     method: 'POST',

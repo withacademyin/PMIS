@@ -79,14 +79,13 @@ export const createITI = async (req, res) => {
 // GET /api/v1/itis - Officer or Admin
 export const getITIs = async (req, res) => {
   try {
-    const { district, state, search, status } = req.query;
-    const officerDistrict = req.user.role === 'OFFICER' ? req.user.officerProfile?.district : null;
-    if (req.user.role === 'OFFICER' && !officerDistrict) {
-      return res.status(403).json({ success: false, message: 'Officer district is not configured' });
-    }
+    const { district, state, search, status, all, limit } = req.query;
+    const isOfficer = req.user?.role === 'OFFICER';
+    const officerDistrict = isOfficer ? req.user.officerProfile?.district : null;
 
     const where = {};
-    if (officerDistrict || district) where.district = { equals: officerDistrict || district, mode: 'insensitive' };
+    const targetDistrict = district || (all === 'true' ? null : officerDistrict);
+    if (targetDistrict) where.district = { equals: targetDistrict, mode: 'insensitive' };
     if (state) where.state = { equals: state, mode: 'insensitive' };
     if (status) where.status = status;
     if (search) {
@@ -105,6 +104,7 @@ export const getITIs = async (req, res) => {
         },
       },
       orderBy: { name: 'asc' },
+      ...(limit ? { take: parseInt(limit, 10) } : {}),
     });
 
     // Attach coordinates in batch
