@@ -20,12 +20,16 @@ import {
   Clock
 } from 'lucide-react';
 
-export function RadarBulletins({ opportunities = [], selectedOppId, onSelectOpportunity }) {
-  const [currentId, setCurrentId] = useState(selectedOppId || opportunities[0]?.id || 'DEMO-0007');
+export function RadarBulletins({ opportunities = [], globalDistrict, setGlobalDistrict, uniqueDistricts, selectedOppId, onSelectOpportunity }) {
+  const filteredOpportunities = globalDistrict === 'ALL' 
+    ? opportunities 
+    : opportunities.filter(op => op.district === globalDistrict);
+
+  const [currentId, setCurrentId] = useState(selectedOppId || filteredOpportunities[0]?.id || 'DEMO-0007');
   const [language, setLanguage] = useState('EN'); // EN or HI
   const [copied, setCopied] = useState(false);
 
-  const activeOpp = opportunities.find((o) => o.id === currentId) || opportunities[0];
+  const activeOpp = filteredOpportunities.find((o) => o.id === currentId) || filteredOpportunities[0];
 
   const handleCopyWhatsApp = () => {
     if (!activeOpp) return;
@@ -74,7 +78,7 @@ export function RadarBulletins({ opportunities = [], selectedOppId, onSelectOppo
             </span>
             <div>
               <h2 className="text-lg font-bold text-slate-900 tracking-tight">
-                Mobilisation Bulletin Generator
+                Events & Camps Bulletin Generator
               </h2>
               <p className="text-xs text-slate-500">
                 Official PMIS notices formatted for institution noticeboards and WhatsApp broadcast.
@@ -85,13 +89,27 @@ export function RadarBulletins({ opportunities = [], selectedOppId, onSelectOppo
 
         {/* Controls */}
         <div className="flex flex-wrap items-center gap-2.5">
+          {/* District Filter */}
+          <select
+            value={globalDistrict}
+            onChange={(e) => setGlobalDistrict(e.target.value)}
+            className="text-xs font-semibold py-2 px-3 rounded-lg border border-slate-200 bg-emerald-50 text-emerald-800 focus:ring-1 focus:ring-emerald-600"
+          >
+            <option value="ALL">All Districts</option>
+            {uniqueDistricts?.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+
           {/* Opportunity Switcher */}
           <select
             value={currentId}
             onChange={(e) => setCurrentId(e.target.value)}
-            className="text-xs font-semibold py-2 px-3 rounded-lg border border-slate-200 bg-white text-slate-800 shadow-2xs focus:ring-1 focus:ring-slate-900"
+            className="text-xs font-semibold py-2 px-3 rounded-lg border border-slate-200 bg-white text-slate-800 shadow-2xs focus:ring-1 focus:ring-slate-900 max-w-[200px] truncate"
           >
-            {opportunities.map((o) => (
+            {filteredOpportunities.map((o) => (
               <option key={o.id} value={o.id}>
                 {o.risk === 'HIGH' ? '🔴' : '🟡'} {o.roleTitle} ({o.openings} vacancies)
               </option>
@@ -168,7 +186,7 @@ export function RadarBulletins({ opportunities = [], selectedOppId, onSelectOppo
             <p className="text-xs text-slate-300 font-medium">
               {language === 'HI'
                 ? 'जिला नोडल अधिकारी सेल — गोरखपुर, उत्तर प्रदेश'
-                : 'District Nodal Officer Cell — Gorakhpur, Uttar Pradesh'}
+                : 'District Nodal Officer Cell —  Uttar Pradesh'}
             </p>
           </div>
 

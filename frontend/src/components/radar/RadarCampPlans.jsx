@@ -20,12 +20,19 @@ import {
 export function RadarCampPlans({
   opportunities = [],
   institutions = [],
+  globalDistrict,
+  setGlobalDistrict,
+  uniqueDistricts,
   preselectedOpportunity,
   nodalOfficer,
 }) {
-  const defaultOpp = preselectedOpportunity || opportunities[0];
+  const filteredOpportunities = globalDistrict === 'ALL' 
+    ? opportunities 
+    : opportunities.filter(op => op.district === globalDistrict);
+
+  const defaultOpp = preselectedOpportunity || filteredOpportunities[0] || opportunities[0];
   const [selectedOppId, setSelectedOppId] = useState(defaultOpp?.id || 'DEMO-0007');
-  const activeOpp = opportunities.find((o) => o.id === selectedOppId) || opportunities[0];
+  const activeOpp = filteredOpportunities.find((o) => o.id === selectedOppId) || filteredOpportunities[0] || opportunities[0];
 
   const defaultInst =
     institutions.find((i) => i.id === 'INST-001') || institutions[0];
@@ -98,6 +105,25 @@ export function RadarCampPlans({
           </h3>
 
           <form onSubmit={handleGenerate} className="space-y-4 text-xs">
+            {/* District Filter */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Select District
+              </label>
+              <select
+                value={globalDistrict}
+                onChange={(e) => setGlobalDistrict(e.target.value)}
+                className="w-full text-xs font-semibold py-2 px-3 rounded-lg border border-slate-200 bg-emerald-50 text-emerald-800 focus:ring-1 focus:ring-emerald-600"
+              >
+                <option value="ALL">All Districts</option>
+                {uniqueDistricts?.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* Linked Internship */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -107,7 +133,7 @@ export function RadarCampPlans({
                 value={selectedOppId}
                 onChange={(e) => {
                   setSelectedOppId(e.target.value);
-                  const op = opportunities.find((o) => o.id === e.target.value);
+                  const op = filteredOpportunities.find((o) => o.id === e.target.value);
                   if (op) {
                     setFormData((prev) => ({
                       ...prev,
@@ -117,7 +143,7 @@ export function RadarCampPlans({
                 }}
                 className="w-full py-2 px-3 rounded-lg border border-slate-200 bg-white text-slate-800 text-xs font-medium focus:ring-1 focus:ring-slate-900"
               >
-                {opportunities.map((op) => (
+                {filteredOpportunities.map((op) => (
                   <option key={op.id} value={op.id}>
                     {op.roleTitle} ({op.openings} Openings · {op.company})
                   </option>

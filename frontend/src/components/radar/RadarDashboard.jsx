@@ -32,28 +32,26 @@ export function RadarDashboard({
   onPlanCamp,
   onShareBulletin,
   onNavigateToNav,
+  globalDistrict,
+  setGlobalDistrict,
+  uniqueDistricts,
 }) {
-  const [selectedDistrict, setSelectedDistrict] = useState('GORAKHPUR');
   const [selectedCatchment, setSelectedCatchment] = useState('60');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState(KPI_METRICS.lastUpdated);
-  const uniqueDistricts = Array.from(new Set(opportunities.map(op => op.district))).filter(Boolean).sort();
-  useEffect(() => {
-    if (uniqueDistricts.length > 0 && !uniqueDistricts.includes(selectedDistrict)) {
-      setSelectedDistrict(uniqueDistricts[0]);
-    }
-  }, [uniqueDistricts, selectedDistrict]);
 
-  const filteredOpportunities = opportunities.filter(op => op.district === selectedDistrict);
+  const filteredOpportunities = globalDistrict === 'ALL' 
+    ? opportunities 
+    : opportunities.filter(op => op.district === globalDistrict);
 
-  // Dynamically compute KPI metrics based on ALL opportunities (state-wide)
+  // Dynamically compute KPI metrics based on filtered opportunities
   const dynamicKPIs = {
-    openOpportunities: opportunities.length,
-    highRisk: opportunities.filter(op => op.risk === 'HIGH').length,
-    openingsAtRisk: opportunities
+    openOpportunities: filteredOpportunities.length,
+    highRisk: filteredOpportunities.filter(op => op.risk === 'HIGH').length,
+    openingsAtRisk: filteredOpportunities
       .filter(op => op.risk === 'HIGH' || op.risk === 'MEDIUM')
       .reduce((sum, op) => sum + (op.openings || 0), 0),
-    closingNext7Days: opportunities.filter(op => op.daysLeft <= 7).length,
+    closingNext7Days: filteredOpportunities.filter(op => op.daysLeft <= 7).length,
   };
 
   // Dynamically compute priority actions based on filtered opportunities
@@ -116,18 +114,16 @@ export function RadarDashboard({
             <span className="font-semibold text-slate-700">District:</span>
             {/* District Selector (Plan.md Section 5.1) */}
             <select
-              value={selectedDistrict}
-              onChange={(e) => setSelectedDistrict(e.target.value)}
+              value={globalDistrict}
+              onChange={(e) => setGlobalDistrict(e.target.value)}
               className="py-0.5 px-2 rounded-md bg-emerald-50 text-emerald-800 font-bold border border-emerald-200 text-xs focus:ring-1 focus:ring-emerald-600"
             >
+              <option value="ALL">All Districts</option>
               {uniqueDistricts.map((d) => (
                 <option key={d} value={d}>
                   {d}
                 </option>
               ))}
-              {uniqueDistricts.length === 0 && (
-                <option value="GORAKHPUR">Gorakhpur</option>
-              )}
             </select>
 
             <span className="text-slate-300">•</span>

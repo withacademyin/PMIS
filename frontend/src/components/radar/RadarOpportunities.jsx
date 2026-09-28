@@ -17,13 +17,15 @@ import {
   ChevronRight
 } from 'lucide-react';
 
-export function RadarOpportunities({ opportunities, initialFilters, onSelectOpportunity, onPlanCamp, onShareBulletin }) {
+export function RadarOpportunities({ opportunities, initialFilters, globalDistrict, setGlobalDistrict, uniqueDistricts, onSelectOpportunity, onPlanCamp, onShareBulletin }) {
   const [search, setSearch] = useState('');
   const [riskFilter, setRiskFilter] = useState(initialFilters?.risk || 'ALL');
   const [deadlineFilter, setDeadlineFilter] = useState(initialFilters?.deadline || 'ALL'); // ALL, 7, 14, 30
 
   // Filter and sort opportunities (High -> Medium -> Low, then fewest days left)
   const filteredOpportunities = opportunities.filter((op) => {
+    const matchesDistrict = globalDistrict === 'ALL' || op.district === globalDistrict;
+    
     const matchesSearch =
       op.roleTitle.toLowerCase().includes(search.toLowerCase()) ||
       op.company.toLowerCase().includes(search.toLowerCase()) ||
@@ -40,7 +42,7 @@ export function RadarOpportunities({ opportunities, initialFilters, onSelectOppo
     const matchesDeadline =
       deadlineFilter === 'ALL' || op.daysLeft <= parseInt(deadlineFilter, 10);
 
-    return matchesSearch && matchesRisk && matchesDeadline;
+    return matchesDistrict && matchesSearch && matchesRisk && matchesDeadline;
   }).sort((a, b) => {
     const riskRank = { HIGH: 1, MEDIUM: 2, LOW: 3 };
     if (riskRank[a.risk] !== riskRank[b.risk]) {
@@ -71,6 +73,20 @@ export function RadarOpportunities({ opportunities, initialFilters, onSelectOppo
 
         {/* Search & Filters */}
         <div className="flex flex-wrap items-center gap-2.5">
+          {/* District Filter */}
+          <select
+            value={globalDistrict}
+            onChange={(e) => setGlobalDistrict(e.target.value)}
+            className="py-1.5 px-2.5 text-xs rounded-lg border border-slate-200 bg-emerald-50 text-emerald-800 font-bold focus:ring-1 focus:ring-emerald-600"
+          >
+            <option value="ALL">All Districts</option>
+            {uniqueDistricts?.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+
           <div className="relative">
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input

@@ -39,6 +39,12 @@ export function RadarView() {
   const [liveOpportunities, setLiveOpportunities] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [globalDistrict, setGlobalDistrict] = useState('ALL');
+
+  const uniqueDistricts = React.useMemo(() => {
+    return Array.from(new Set(liveOpportunities.map(op => op.district))).filter(Boolean).sort();
+  }, [liveOpportunities]);
+
   useEffect(() => {
     const loadOpportunities = async () => {
       try {
@@ -189,6 +195,9 @@ export function RadarView() {
               opportunities={liveOpportunities}
               institutions={INSTITUTIONS}
               priorityActions={PRIORITY_ACTIONS}
+              globalDistrict={globalDistrict}
+              setGlobalDistrict={setGlobalDistrict}
+              uniqueDistricts={uniqueDistricts}
               onSelectOpportunity={handleOpenOpportunityModal}
               onPlanCamp={handlePlanCamp}
               onShareBulletin={handleShareBulletin}
@@ -202,6 +211,9 @@ export function RadarView() {
           {activeNav === 'opportunities' && (
             <RadarOpportunities
               opportunities={liveOpportunities}
+              globalDistrict={globalDistrict}
+              setGlobalDistrict={setGlobalDistrict}
+              uniqueDistricts={uniqueDistricts}
               initialFilters={opportunityFilters}
               onSelectOpportunity={handleOpenOpportunityModal}
               onPlanCamp={handlePlanCamp}
@@ -212,6 +224,9 @@ export function RadarView() {
           {activeNav === 'institutions' && (
             <RadarInstitutions
               opportunities={liveOpportunities}
+              globalDistrict={globalDistrict}
+              setGlobalDistrict={setGlobalDistrict}
+              uniqueDistricts={uniqueDistricts}
               onPlanCamp={handlePlanCamp}
               onSelectOpportunity={handleOpenOpportunityModal}
             />
@@ -220,6 +235,9 @@ export function RadarView() {
           {activeNav === 'bulletins' && (
             <RadarBulletins
               opportunities={liveOpportunities}
+              globalDistrict={globalDistrict}
+              setGlobalDistrict={setGlobalDistrict}
+              uniqueDistricts={uniqueDistricts}
               selectedOppId={preselectedOpp?.id}
               onSelectOpportunity={handleOpenOpportunityModal}
             />
@@ -229,6 +247,9 @@ export function RadarView() {
             <RadarCampPlans
               opportunities={liveOpportunities}
               institutions={INSTITUTIONS}
+              globalDistrict={globalDistrict}
+              setGlobalDistrict={setGlobalDistrict}
+              uniqueDistricts={uniqueDistricts}
               preselectedOpportunity={preselectedOpp}
               nodalOfficer={officerProfile}
             />

@@ -18,12 +18,17 @@ import {
 } from 'lucide-react';
 import { INSTITUTIONS } from '@/data/radarData';
 
-export function RadarInstitutions({ opportunities, onPlanCamp, onSelectOpportunity }) {
+export function RadarInstitutions({ opportunities, globalDistrict, setGlobalDistrict, uniqueDistricts, onPlanCamp, onSelectOpportunity }) {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('ALL'); // ALL, ITI, Polytechnic, College
-  const [selectedInstitution, setSelectedInstitution] = useState(INSTITUTIONS[0]);
 
-  const filteredInstitutions = INSTITUTIONS.filter((inst) => {
+  const validInstitutions = globalDistrict === 'ALL'
+    ? INSTITUTIONS
+    : INSTITUTIONS.filter(inst => inst.district === globalDistrict);
+
+  const [selectedInstitution, setSelectedInstitution] = useState(validInstitutions[0] || INSTITUTIONS[0]);
+
+  const filteredInstitutions = validInstitutions.filter((inst) => {
     const matchesSearch =
       inst.name.toLowerCase().includes(search.toLowerCase()) ||
       inst.location.toLowerCase().includes(search.toLowerCase()) ||
@@ -68,7 +73,21 @@ export function RadarInstitutions({ opportunities, onPlanCamp, onSelectOpportuni
         </div>
 
         {/* Search & Filter */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* District Filter */}
+          <select
+            value={globalDistrict}
+            onChange={(e) => setGlobalDistrict(e.target.value)}
+            className="py-1.5 px-2.5 text-xs rounded-lg border border-slate-200 bg-emerald-50 text-emerald-800 font-bold focus:ring-1 focus:ring-emerald-600"
+          >
+            <option value="ALL">All Districts</option>
+            {uniqueDistricts?.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+
           <div className="relative">
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
