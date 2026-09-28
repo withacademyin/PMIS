@@ -61,9 +61,8 @@ export function RadarSidebar({
             <div className="mt-1 flex items-center gap-1.5">
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
-                Uttar Pradesh
+                India
               </span>
-              <span className="text-[10px] text-slate-600 font-medium">Gorakhpur DNO</span>
             </div>
           </div>
         </div>
