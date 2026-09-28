@@ -87,27 +87,37 @@ async function seedLocations() {
   console.log(`Checking ${itis.length} ITIs for location coordinates...`);
 
   let updated = 0;
-  for (let i = 0; i < itis.length; i++) {
-    const iti = itis[i];
-    const key = (iti.district || '').toLowerCase().trim();
-    const base = DISTRICT_COORDS[key] || DISTRICT_COORDS['lucknow'];
+  const CHUNK_SIZE = 50;
 
-    // Deterministic pseudo-random jitter around the district center (radius within 2-25 km)
-    const angle = (i * 137.5) * (Math.PI / 180); // golden ratio angle
-    const distanceKm = 2 + ((i * 7) % 25); // 2km to 27km from district center
-    const latOffset = (distanceKm / 111.0) * Math.cos(angle);
-    const lngOffset = (distanceKm / (111.0 * Math.cos(base[0] * Math.PI / 180))) * Math.sin(angle);
+  for (let i = 0; i < itis.length; i += CHUNK_SIZE) {
+    const chunk = itis.slice(i, i + CHUNK_SIZE);
+    await Promise.all(
+      chunk.map((iti, idx) => {
+        const globalIdx = i + idx;
+        const key = (iti.district || '').toLowerCase().trim();
+        const base = DISTRICT_COORDS[key] || DISTRICT_COORDS['lucknow'];
 
-    const lat = base[0] + latOffset;
-    const lng = base[1] + lngOffset;
+        // Deterministic pseudo-random jitter around the district center (radius within 2-25 km)
+        const angle = (globalIdx * 137.5) * (Math.PI / 180);
+        const distanceKm = 2 + ((globalIdx * 7) % 25);
+        const latOffset = (distanceKm / 111.0) * Math.cos(angle);
+        const lngOffset = (distanceKm / (111.0 * Math.cos(base[0] * Math.PI / 180))) * Math.sin(angle);
 
-    await prisma.$executeRawUnsafe(
-      `UPDATE "ITI" SET location = ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography WHERE id = $3;`,
-      lng,
-      lat,
-      iti.id
+        const lat = base[0] + latOffset;
+        const lng = base[1] + lngOffset;
+
+        return prisma.$executeRawUnsafe(
+          `UPDATE "ITI" SET location = ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography WHERE id = $3;`,
+          lng,
+          lat,
+          iti.id
+        );
+      })
     );
-    updated++;
+    updated += chunk.length;
+    if (updated % 250 === 0 || updated === itis.length) {
+      console.log(`Updated coordinates for ${updated}/${itis.length} ITIs...`);
+    }
   }
 
   console.log(`Successfully updated coordinates for ${updated} ITIs.`);

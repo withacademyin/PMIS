@@ -56,7 +56,10 @@ function toDescription(record) {
 
 async function main() {
   const records = parseCsv(await fs.readFile(csvPath, 'utf8'));
-  let created = 0;
+  const existingITIs = await prisma.iTI.findMany({ select: { id: true, code: true } });
+  const existingMap = new Map(existingITIs.map((item) => [item.code, item.id]));
+
+  const toCreate = [];
   let updated = 0;
 
   for (const record of records) {
@@ -80,15 +83,20 @@ async function main() {
       description: toDescription(record),
       status: 'ACTIVE',
     };
-    const existing = await prisma.iTI.findFirst({ where: { code: record.iti_code } });
 
-    if (existing) {
-      await prisma.iTI.update({ where: { id: existing.id }, data });
+    const existingId = existingMap.get(record.iti_code);
+    if (existingId) {
+      await prisma.iTI.update({ where: { id: existingId }, data });
       updated += 1;
     } else {
-      await prisma.iTI.create({ data });
-      created += 1;
+      toCreate.push(data);
     }
+  }
+
+  let created = 0;
+  if (toCreate.length > 0) {
+    const res = await prisma.iTI.createMany({ data: toCreate, skipDuplicates: true });
+    created = res.count;
   }
 
   console.log(`Imported ${records.length} CSV rows: ${created} created, ${updated} updated.`);
