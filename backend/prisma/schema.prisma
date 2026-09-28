@@ -71,6 +71,7 @@ model ITI {
   ncvtDetailUrl String?
   trades       String[]                             @default([])
   tradesDataStatus String?
+  strength     Int?
   isGovernment Boolean                              @default(true)
   location     Unsupported("geography(Point,4326)")?
   description  String?

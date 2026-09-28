@@ -12,7 +12,8 @@
     "start": "node src/server.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
-    "seed": "node prisma/seed.js"
+    "seed": "node prisma/seed.js",
+    "import-itis": "node prisma/import-itis.js"
   },
   "dependencies": {
     "@prisma/client": "^6.4.0",
