@@ -76,24 +76,21 @@ export function RadarSidebar({
         <button
           type="button"
           onClick={() => handleNavClick('dashboard')}
-          className={`w-full group flex items-center justify-between rounded-lg px-3 py-2 text-[13px] font-medium transition-all ${
-            isNavActive('dashboard')
-              ? 'bg-slate-900 text-white shadow-sm'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-          }`}
+          className={`w-full group flex items-center justify-between rounded-lg px-3 py-2 text-[13px] font-medium transition-all ${isNavActive('dashboard')
+            ? 'bg-slate-900 text-white shadow-sm'
+            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
         >
           <div className="flex items-center gap-2.5">
             <LayoutDashboard
-              className={`w-4 h-4 ${
-                isNavActive('dashboard') ? 'text-emerald-400' : 'text-slate-600 group-hover:text-slate-600'
-              }`}
+              className={`w-4 h-4 ${isNavActive('dashboard') ? 'text-emerald-400' : 'text-slate-600 group-hover:text-slate-600'
+                }`}
             />
-            <span>🏠 Dashboard</span>
+            <span>Dashboard</span>
           </div>
           <span
-            className={`w-1.5 h-1.5 rounded-full ${
-              isNavActive('dashboard') ? 'bg-emerald-400' : 'bg-transparent'
-            }`}
+            className={`w-1.5 h-1.5 rounded-full ${isNavActive('dashboard') ? 'bg-emerald-400' : 'bg-transparent'
+              }`}
           />
         </button>
 
@@ -101,26 +98,23 @@ export function RadarSidebar({
         <button
           type="button"
           onClick={() => handleNavClick('opportunities')}
-          className={`w-full group flex items-center justify-between rounded-lg px-3 py-2 text-[13px] font-medium transition-all ${
-            isNavActive('opportunities')
-              ? 'bg-slate-900 text-white shadow-sm'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-          }`}
+          className={`w-full group flex items-center justify-between rounded-lg px-3 py-2 text-[13px] font-medium transition-all ${isNavActive('opportunities')
+            ? 'bg-slate-900 text-white shadow-sm'
+            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
         >
           <div className="flex items-center gap-2.5">
             <MapPin
-              className={`w-4 h-4 ${
-                isNavActive('opportunities') ? 'text-amber-400' : 'text-slate-600 group-hover:text-slate-600'
-              }`}
+              className={`w-4 h-4 ${isNavActive('opportunities') ? 'text-amber-400' : 'text-slate-600 group-hover:text-slate-600'
+                }`}
             />
-            <span>📍 Opportunities</span>
+            <span> Opportunities</span>
           </div>
           <span
-            className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${
-              isNavActive('opportunities')
-                ? 'bg-slate-800 text-amber-300'
-                : 'bg-slate-100 text-slate-600'
-            }`}
+            className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${isNavActive('opportunities')
+              ? 'bg-slate-800 text-amber-300'
+              : 'bg-slate-100 text-slate-600'
+              }`}
           >
             {kpiMetrics?.openOpportunities || 52}
           </span>
@@ -130,26 +124,23 @@ export function RadarSidebar({
         <button
           type="button"
           onClick={() => handleNavClick('institutions')}
-          className={`w-full group flex items-center justify-between rounded-lg px-3 py-2 text-[13px] font-medium transition-all ${
-            isNavActive('institutions')
-              ? 'bg-slate-900 text-white shadow-sm'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-          }`}
+          className={`w-full group flex items-center justify-between rounded-lg px-3 py-2 text-[13px] font-medium transition-all ${isNavActive('institutions')
+            ? 'bg-slate-900 text-white shadow-sm'
+            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
         >
           <div className="flex items-center gap-2.5">
             <Building2
-              className={`w-4 h-4 ${
-                isNavActive('institutions') ? 'text-blue-400' : 'text-slate-600 group-hover:text-slate-600'
-              }`}
+              className={`w-4 h-4 ${isNavActive('institutions') ? 'text-blue-400' : 'text-slate-600 group-hover:text-slate-600'
+                }`}
             />
-            <span>🏫 Institutions</span>
+            <span>Institutions</span>
           </div>
           <span
-            className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${
-              isNavActive('institutions')
-                ? 'bg-slate-800 text-blue-300'
-                : 'bg-slate-100 text-slate-600'
-            }`}
+            className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${isNavActive('institutions')
+              ? 'bg-slate-800 text-blue-300'
+              : 'bg-slate-100 text-slate-600'
+              }`}
           >
             {institutionsCount ?? 48}
           </span>
@@ -165,19 +156,17 @@ export function RadarSidebar({
                 onNavChange('bulletins');
               }
             }}
-            className={`w-full group flex items-center justify-between rounded-lg px-3 py-2 text-[13px] font-medium transition-all ${
-              isMobilisationActive
-                ? 'bg-slate-100/90 text-slate-900 font-semibold'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-            }`}
+            className={`w-full group flex items-center justify-between rounded-lg px-3 py-2 text-[13px] font-medium transition-all ${isMobilisationActive
+              ? 'bg-slate-100/90 text-slate-900 font-semibold'
+              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+              }`}
           >
             <div className="flex items-center gap-2.5">
               <Megaphone
-                className={`w-4 h-4 ${
-                  isMobilisationActive ? 'text-rose-600' : 'text-slate-600 group-hover:text-slate-600'
-                }`}
+                className={`w-4 h-4 ${isMobilisationActive ? 'text-rose-600' : 'text-slate-600 group-hover:text-slate-600'
+                  }`}
               />
-              <span>📢 Events &amp; Camps</span>
+              <span> Events &amp; Camps</span>
             </div>
             {mobilisationOpen ? (
               <ChevronDown className="w-3.5 h-3.5 text-slate-600" />
@@ -192,11 +181,10 @@ export function RadarSidebar({
               <button
                 type="button"
                 onClick={() => onNavChange('bulletins')}
-                className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[12.5px] transition-colors ${
-                  activeNav === 'bulletins'
-                    ? 'bg-rose-50 text-rose-700 font-semibold'
-                    : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
-                }`}
+                className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[12.5px] transition-colors ${activeNav === 'bulletins'
+                  ? 'bg-rose-50 text-rose-700 font-semibold'
+                  : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                  }`}
               >
                 <span className="font-mono text-xs text-slate-600">├─</span>
                 <FileCheck className="w-3.5 h-3.5 text-slate-600" />
@@ -206,11 +194,10 @@ export function RadarSidebar({
               <button
                 type="button"
                 onClick={() => onNavChange('camp-plans')}
-                className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[12.5px] transition-colors ${
-                  activeNav === 'camp-plans'
-                    ? 'bg-rose-50 text-rose-700 font-semibold'
-                    : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
-                }`}
+                className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[12.5px] transition-colors ${activeNav === 'camp-plans'
+                  ? 'bg-rose-50 text-rose-700 font-semibold'
+                  : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                  }`}
               >
                 <span className="font-mono text-xs text-slate-600">└─</span>
                 <CalendarCheck className="w-3.5 h-3.5 text-slate-600" />
@@ -224,26 +211,23 @@ export function RadarSidebar({
         <button
           type="button"
           onClick={() => handleNavClick('weekly-plan')}
-          className={`w-full group flex items-center justify-between rounded-lg px-3 py-2 text-[13px] font-medium transition-all ${
-            isNavActive('weekly-plan')
-              ? 'bg-slate-900 text-white shadow-sm'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-          }`}
+          className={`w-full group flex items-center justify-between rounded-lg px-3 py-2 text-[13px] font-medium transition-all ${isNavActive('weekly-plan')
+            ? 'bg-slate-900 text-white shadow-sm'
+            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
         >
           <div className="flex items-center gap-2.5">
             <FileText
-              className={`w-4 h-4 ${
-                isNavActive('weekly-plan') ? 'text-emerald-400' : 'text-slate-600 group-hover:text-slate-600'
-              }`}
+              className={`w-4 h-4 ${isNavActive('weekly-plan') ? 'text-emerald-400' : 'text-slate-600 group-hover:text-slate-600'
+                }`}
             />
-            <span>📄 Weekly Action Plan</span>
+            <span> Weekly Action Plan</span>
           </div>
           <span
-            className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${
-              isNavActive('weekly-plan')
-                ? 'bg-amber-400 text-slate-950'
-                : 'bg-amber-100 text-amber-800'
-            }`}
+            className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${isNavActive('weekly-plan')
+              ? 'bg-amber-400 text-slate-950'
+              : 'bg-amber-100 text-amber-800'
+              }`}
           >
             3 due
           </span>
@@ -253,26 +237,23 @@ export function RadarSidebar({
         <button
           type="button"
           onClick={() => handleNavClick('outcomes')}
-          className={`w-full group flex items-center justify-between rounded-lg px-3 py-2 text-[13px] font-medium transition-all ${
-            isNavActive('outcomes')
-              ? 'bg-slate-900 text-white shadow-sm'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-          }`}
+          className={`w-full group flex items-center justify-between rounded-lg px-3 py-2 text-[13px] font-medium transition-all ${isNavActive('outcomes')
+            ? 'bg-slate-900 text-white shadow-sm'
+            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
         >
           <div className="flex items-center gap-2.5">
             <TrendingUp
-              className={`w-4 h-4 ${
-                isNavActive('outcomes') ? 'text-purple-400' : 'text-slate-600 group-hover:text-slate-600'
-              }`}
+              className={`w-4 h-4 ${isNavActive('outcomes') ? 'text-purple-400' : 'text-slate-600 group-hover:text-slate-600'
+                }`}
             />
-            <span>📊 Outcomes</span>
+            <span>Outcomes</span>
           </div>
           <span
-            className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${
-              isNavActive('outcomes')
-                ? 'bg-emerald-500 text-white'
-                : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-            }`}
+            className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${isNavActive('outcomes')
+              ? 'bg-emerald-500 text-white'
+              : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+              }`}
           >
             Pilot
           </span>
@@ -287,18 +268,16 @@ export function RadarSidebar({
         <button
           type="button"
           onClick={() => handleNavClick('settings')}
-          className={`w-full group flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-all ${
-            isNavActive('settings')
-              ? 'bg-slate-900 text-white shadow-sm'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-          }`}
+          className={`w-full group flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-all ${isNavActive('settings')
+            ? 'bg-slate-900 text-white shadow-sm'
+            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
         >
           <Settings
-            className={`w-4 h-4 ${
-              isNavActive('settings') ? 'text-slate-300' : 'text-slate-600 group-hover:text-slate-600'
-            }`}
+            className={`w-4 h-4 ${isNavActive('settings') ? 'text-slate-300' : 'text-slate-600 group-hover:text-slate-600'
+              }`}
           />
-          <span>⚙ Profile / Settings</span>
+          <span> Profile / Settings</span>
         </button>
       </div>
 

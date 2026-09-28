@@ -36,7 +36,6 @@ export function RadarMap({
   const routeLinesRef = useRef(null);
 
   const [activePin, setActivePin] = useState(null);
-  const [showInstitutions, setShowInstitutions] = useState(true);
   const [selectedRiskFilter, setSelectedRiskFilter] = useState('ALL');
   const [mapStyle, setMapStyle] = useState('voyager'); // voyager, osm, satellite
   const [currentView, setCurrentView] = useState('district'); // district or national
@@ -215,51 +214,49 @@ export function RadarMap({
       if (routesLayer) routesLayer.addLayer(travelLine2);
 
       // ── 3. Render Institutions Markers ──
-      if (showInstitutions) {
-        institutions.forEach((inst) => {
-          const lat = inst.coordinates?.lat ?? inst.lat;
-          const lng = inst.coordinates?.lng ?? inst.lng;
-          if (!lat || !lng) return;
+      institutions.forEach((inst) => {
+        const lat = inst.coordinates?.lat ?? inst.lat;
+        const lng = inst.coordinates?.lng ?? inst.lng;
+        if (!lat || !lng) return;
 
-          const isITI = (inst.type || '').toUpperCase().includes('ITI');
-          const badgeBg = isITI ? '#2563eb' : inst.type === 'Polytechnic' ? '#7c3aed' : '#0d9488';
+        const isITI = (inst.type || '').toUpperCase().includes('ITI');
+        const badgeBg = isITI ? '#2563eb' : inst.type === 'Polytechnic' ? '#7c3aed' : '#0d9488';
 
-          const iconHtml = `
-            <div style="
-              width: 32px;
-              height: 32px;
-              background-color: ${badgeBg};
-              border: 2px solid #ffffff;
-              border-radius: 50%;
-              box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              color: white;
-              font-weight: 800;
-              font-size: 11px;
-              cursor: pointer;
-            ">
-              ${isITI ? '🏫' : '🎓'}
-            </div>
-          `;
+        const iconHtml = `
+          <div style="
+            width: 32px;
+            height: 32px;
+            background-color: ${badgeBg};
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 800;
+            font-size: 11px;
+            cursor: pointer;
+          ">
+            ${isITI ? '🏫' : '🎓'}
+          </div>
+        `;
 
-          const customIcon = L.divIcon({
-            html: iconHtml,
-            className: 'custom-leaflet-marker',
-            iconSize: [32, 32],
-            iconAnchor: [16, 16],
-          });
-
-          const marker = L.marker([lat, lng], { icon: customIcon });
-
-          marker.on('click', () => {
-            setActivePin({ ...inst, isInstitution: true });
-          });
-
-          markersLayer.addLayer(marker);
+        const customIcon = L.divIcon({
+          html: iconHtml,
+          className: 'custom-leaflet-marker',
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
         });
-      }
+
+        const marker = L.marker([lat, lng], { icon: customIcon });
+
+        marker.on('click', () => {
+          setActivePin({ ...inst, isInstitution: true });
+        });
+
+        markersLayer.addLayer(marker);
+      });
 
       // ── 4. Render Opportunities Markers ──
       const filteredOpps = opportunities.filter((op) => {
@@ -338,7 +335,6 @@ export function RadarMap({
     opportunities,
     institutions,
     selectedCatchment,
-    showInstitutions,
     selectedRiskFilter,
     isMapReady,
   ]);
@@ -371,7 +367,7 @@ export function RadarMap({
           <div className="flex items-center gap-2">
             <Compass className="w-4 h-4 text-emerald-600" />
             <span className="text-xs font-bold text-slate-900 tracking-wide uppercase">
-              Live Geographic Map: OpenStreetMap & CartoDB
+              Live Geographic Map
             </span>
           </div>
 
@@ -388,18 +384,7 @@ export function RadarMap({
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              📍 Gorakhpur Catchment
-            </button>
-            <button
-              type="button"
-              onClick={zoomToIndia}
-              className={`px-2.5 py-1 text-[11px] font-bold rounded transition-colors ${
-                currentView === 'national'
-                  ? 'bg-slate-900 text-white'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              🇮🇳 All-India Context
+              📍 Current Catchment
             </button>
           </div>
 
@@ -426,22 +411,8 @@ export function RadarMap({
           </div>
         </div>
 
-        {/* Right Controls: Institution toggle, Risk filter, Map tile style */}
+        {/* Right Controls: Risk filter, Map tile style */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Institution Toggle */}
-          <button
-            type="button"
-            onClick={() => setShowInstitutions(!showInstitutions)}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border transition-colors ${
-              showInstitutions
-                ? 'bg-blue-50 text-blue-700 border-blue-200'
-                : 'bg-white text-slate-500 border-slate-200'
-            }`}
-          >
-            <Building2 className="w-3.5 h-3.5" />
-            <span>Institutions ({institutions.length})</span>
-          </button>
-
           {/* Risk Level Pills */}
           <div className="inline-flex rounded-md bg-white border border-slate-200 p-0.5 text-xs">
             {[

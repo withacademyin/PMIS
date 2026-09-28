@@ -17,10 +17,10 @@ import {
   ChevronRight
 } from 'lucide-react';
 
-export function RadarOpportunities({ opportunities, onSelectOpportunity, onPlanCamp, onShareBulletin }) {
+export function RadarOpportunities({ opportunities, initialFilters, onSelectOpportunity, onPlanCamp, onShareBulletin }) {
   const [search, setSearch] = useState('');
-  const [riskFilter, setRiskFilter] = useState('ALL');
-  const [deadlineFilter, setDeadlineFilter] = useState('ALL'); // ALL, 7, 14, 30
+  const [riskFilter, setRiskFilter] = useState(initialFilters?.risk || 'ALL');
+  const [deadlineFilter, setDeadlineFilter] = useState(initialFilters?.deadline || 'ALL'); // ALL, 7, 14, 30
 
   // Filter and sort opportunities (High -> Medium -> Low, then fewest days left)
   const filteredOpportunities = opportunities.filter((op) => {
@@ -30,7 +30,12 @@ export function RadarOpportunities({ opportunities, onSelectOpportunity, onPlanC
       op.qualification.toLowerCase().includes(search.toLowerCase()) ||
       op.sector.toLowerCase().includes(search.toLowerCase());
 
-    const matchesRisk = riskFilter === 'ALL' || op.risk === riskFilter;
+    const matchesRisk =
+      riskFilter === 'ALL'
+        ? true
+        : riskFilter === 'AT_RISK'
+        ? op.risk === 'HIGH' || op.risk === 'MEDIUM'
+        : op.risk === riskFilter;
 
     const matchesDeadline =
       deadlineFilter === 'ALL' || op.daysLeft <= parseInt(deadlineFilter, 10);
@@ -79,7 +84,7 @@ export function RadarOpportunities({ opportunities, onSelectOpportunity, onPlanC
 
           {/* Risk Filter */}
           <div className="inline-flex rounded-lg bg-slate-100 p-0.5 border border-slate-200 text-xs">
-            {['ALL', 'HIGH', 'MEDIUM', 'LOW'].map((r) => (
+            {['ALL', 'HIGH', 'MEDIUM', 'LOW', 'AT_RISK'].map((r) => (
               <button
                 key={r}
                 type="button"
@@ -90,7 +95,7 @@ export function RadarOpportunities({ opportunities, onSelectOpportunity, onPlanC
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                {r === 'ALL' ? 'All Risks' : r}
+                {r === 'ALL' ? 'All Risks' : r === 'AT_RISK' ? 'High + Med' : r}
               </button>
             ))}
           </div>
