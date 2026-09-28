@@ -444,7 +444,7 @@ export function RadarMap({
           <div className="inline-flex rounded-md bg-white border border-slate-200 p-0.5 text-xs">
             {[
               { id: 'ALL', label: 'All' },
-              { id: 'HIGH', label: '🔴 High (12)' },
+              { id: 'HIGH', label: '🔴 High' },
               { id: 'MEDIUM', label: '🟡 Med' },
               { id: 'LOW', label: '🟢 Low' },
             ].map(({ id, label }) => (
