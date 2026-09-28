@@ -164,6 +164,26 @@ export const api = {
     headers: getAuthHeader(),
   }).then(handleResponse),
 
+  getRequirementApplicants: (id) => fetch(`${BASE_URL}/requirements/${id}/applicants`, {
+    headers: getAuthHeader(),
+  }).then(handleResponse),
+
+  updateRequirementApplicantStatus: (id, applicantId, status) => fetch(`${BASE_URL}/requirements/${id}/applicants/${applicantId}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+    body: JSON.stringify({ status }),
+  }).then(handleResponse),
+
+  contactITI: (id, payload) => fetch(`${BASE_URL}/itis/${id}/contact`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+    body: JSON.stringify(payload),
+  }).then(handleResponse),
+
+  getITIContactInquiries: (id) => fetch(`${BASE_URL}/itis/${id}/contact-inquiries`, {
+    headers: getAuthHeader(),
+  }).then(handleResponse),
+
   getITIWorkers: (id, trade = '', requirementId = '') => {
     const query = new URLSearchParams();
     if (trade) query.set('trade', trade);

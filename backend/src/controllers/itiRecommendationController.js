@@ -1,4 +1,5 @@
 import prisma from '../config/prisma.js';
+import { generateITIContacts } from '../utils/dummyData.js';
 
 const normalizeTrade = (value) => value.toLowerCase().replace(/[^a-z0-9]/g, '');
 
@@ -153,7 +154,12 @@ export const matchRequirementToITIs = async (req, res) => {
       orderBy: [{ score: 'desc' }, { iti: { name: 'asc' } }],
     });
 
-    return res.json({ success: true, count: savedRecommendations.length, data: savedRecommendations });
+    const enriched = savedRecommendations.map((r) => ({
+      ...r,
+      iti: r.iti ? { ...r.iti, contacts: generateITIContacts(r.iti) } : null,
+    }));
+
+    return res.json({ success: true, count: enriched.length, data: enriched });
   } catch (error) {
     console.error('Error matching requirement to ITIs:', error);
     return res.status(500).json({ success: false, message: 'Failed to match requirement to ITIs' });
@@ -176,7 +182,12 @@ export const getRequirementITIs = async (req, res) => {
       orderBy: [{ score: 'desc' }, { iti: { name: 'asc' } }],
     });
 
-    return res.json({ success: true, count: recommendations.length, data: recommendations });
+    const enriched = recommendations.map((r) => ({
+      ...r,
+      iti: r.iti ? { ...r.iti, contacts: generateITIContacts(r.iti) } : null,
+    }));
+
+    return res.json({ success: true, count: enriched.length, data: enriched });
   } catch (error) {
     console.error('Error fetching ITI recommendations:', error);
     return res.status(500).json({ success: false, message: 'Failed to fetch ITI recommendations' });

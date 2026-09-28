@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { generateDummyApplicants, setApplicantStatus } from '../utils/dummyData.js';
 
 const prisma = new PrismaClient();
 
@@ -10,17 +11,56 @@ export const getMyRequirements = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Officer profile not found' });
     }
 
-    const requirements = await prisma.workRequirement.findMany({
-      where: { officerId },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        _count: {
-          select: { shortlists: true }
+    const officerDistrict = req.user.officerProfile?.district || 'Lucknow';
+
+    const [requirements, nearbyItis] = await Promise.all([
+      prisma.workRequirement.findMany({
+        where: { officerId },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          _count: {
+            select: { shortlists: true }
+          }
         }
-      }
+      }),
+      prisma.iTI.findMany({
+        where: {
+          district: { equals: officerDistrict, mode: 'insensitive' },
+          status: 'ACTIVE'
+        },
+        take: 8,
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          district: true,
+          state: true,
+          phone: true,
+          email: true,
+          isGovernment: true
+        }
+      })
+    ]);
+
+    const enriched = requirements.map((requirement) => {
+      const applicants = generateDummyApplicants(requirement, nearbyItis);
+      const shortlisted = applicants.filter((a) =>
+        ['SHORTLISTED', 'INTERVIEW_SCHEDULED', 'SELECTED'].includes(a.status)
+      );
+      return {
+        ...requirement,
+        applicantCount: applicants.length,
+        shortlistedCount: shortlisted.length,
+        topConfidenceScore: applicants.length > 0 ? applicants[0].confidenceScore : null,
+        averageConfidenceScore: applicants.length > 0
+          ? Math.round(applicants.reduce((acc, a) => acc + a.confidenceScore, 0) / applicants.length)
+          : null,
+        applicants,
+        shortlisted,
+      };
     });
 
-    res.status(200).json({ success: true, data: requirements });
+    res.status(200).json({ success: true, data: enriched });
   } catch (error) {
     console.error('Error fetching requirements:', error);
     res.status(500).json({ success: false, message: 'Failed to fetch requirements' });
@@ -36,6 +76,7 @@ export const getRequirementById = async (req, res) => {
     const requirement = await prisma.workRequirement.findUnique({
       where: { id },
       include: {
+        officer: { select: { district: true } },
         shortlists: {
           include: {
             worker: {
@@ -57,10 +98,132 @@ export const getRequirementById = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Not authorized to view this requirement' });
     }
 
-    res.status(200).json({ success: true, data: requirement });
+    const nearbyItis = await prisma.iTI.findMany({
+      where: {
+        district: { equals: requirement.officer?.district || 'Lucknow', mode: 'insensitive' },
+        status: 'ACTIVE'
+      },
+      take: 8,
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        district: true,
+        state: true,
+        phone: true,
+        email: true,
+        isGovernment: true
+      }
+    });
+
+    const applicants = generateDummyApplicants(requirement, nearbyItis);
+    const shortlisted = applicants.filter((a) =>
+      ['SHORTLISTED', 'INTERVIEW_SCHEDULED', 'SELECTED'].includes(a.status)
+    );
+
+    const enriched = {
+      ...requirement,
+      applicantCount: applicants.length,
+      shortlistedCount: shortlisted.length,
+      topConfidenceScore: applicants.length > 0 ? applicants[0].confidenceScore : null,
+      averageConfidenceScore: applicants.length > 0
+        ? Math.round(applicants.reduce((acc, a) => acc + a.confidenceScore, 0) / applicants.length)
+        : null,
+      applicants,
+      shortlisted,
+    };
+
+    res.status(200).json({ success: true, data: enriched });
   } catch (error) {
     console.error('Error fetching requirement:', error);
     res.status(500).json({ success: false, message: 'Failed to fetch requirement' });
+  }
+};
+
+// GET /api/v1/requirements/:id/applicants
+export const getRequirementApplicants = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const requirement = await prisma.workRequirement.findUnique({
+      where: { id },
+      include: {
+        officer: { select: { district: true } }
+      }
+    });
+
+    if (!requirement) {
+      return res.status(404).json({ success: false, message: 'Requirement not found' });
+    }
+
+    const nearbyItis = await prisma.iTI.findMany({
+      where: {
+        district: { equals: requirement.officer?.district || 'Lucknow', mode: 'insensitive' },
+        status: 'ACTIVE'
+      },
+      take: 8,
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        district: true,
+        state: true,
+        phone: true,
+        email: true,
+        isGovernment: true
+      }
+    });
+
+    const applicants = generateDummyApplicants(requirement, nearbyItis);
+    const shortlisted = applicants.filter((a) =>
+      ['SHORTLISTED', 'INTERVIEW_SCHEDULED', 'SELECTED'].includes(a.status)
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        requirementId: requirement.id,
+        requiredTrade: requirement.requiredTrade,
+        applicants,
+        shortlisted,
+        stats: {
+          totalApplicants: applicants.length,
+          shortlistedCount: shortlisted.length,
+          topConfidence: applicants[0]?.confidenceScore || 0,
+          averageConfidence: applicants.length > 0
+            ? Math.round(applicants.reduce((acc, a) => acc + a.confidenceScore, 0) / applicants.length)
+            : 0
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching requirement applicants:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch applicants' });
+  }
+};
+
+// PATCH /api/v1/requirements/:id/applicants/:applicantId/status
+export const updateRequirementApplicantStatus = async (req, res) => {
+  try {
+    const { id, applicantId } = req.params;
+    const { status } = req.body;
+    const allowed = ['APPLIED', 'SHORTLISTED', 'INTERVIEW_SCHEDULED', 'SELECTED', 'REJECTED'];
+    if (!allowed.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid status. Must be one of: ${allowed.join(', ')}`
+      });
+    }
+
+    setApplicantStatus(id, applicantId, status);
+    return res.status(200).json({
+      success: true,
+      message: `Status updated to ${status}`,
+      applicantId,
+      status
+    });
+  } catch (error) {
+    console.error('Error updating applicant status:', error);
+    return res.status(500).json({ success: false, message: 'Failed to update applicant status' });
   }
 };
 

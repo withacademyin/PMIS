@@ -12,7 +12,8 @@
     "start": "export DIRECT_URL=${DIRECT_URL:-$DATABASE_URL} && npx prisma generate && npx prisma migrate deploy && node src/server.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
-    "seed": "node prisma/seed.js"
+    "seed": "node prisma/seed.js",
+    "db:init": "node prisma/seed.js && node prisma/import-itis.js && node prisma/seed-iti-locations.js"
   },
   "dependencies": {
     "@prisma/client": "^6.4.0",

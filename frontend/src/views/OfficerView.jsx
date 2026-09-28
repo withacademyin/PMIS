@@ -7,6 +7,7 @@ import {
   Building2,
   Briefcase,
   ChevronDown,
+  ChevronUp,
   Loader2,
   RefreshCw,
   Users,
@@ -21,10 +22,16 @@ import {
   ExternalLink,
   ChevronRight,
   ShieldCheck,
+  Phone,
+  Mail,
+  Star,
+  Clock,
+  Send,
 } from 'lucide-react';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import ContactItiModal from '@/components/ContactItiModal';
 
 const SIDEBAR_ITEMS = [
   { id: 'requirements', icon: Briefcase, label: 'Work Requirements' },
@@ -95,6 +102,55 @@ export function OfficerView() {
   const [customLng, setCustomLng] = useState(defaultCoord.lng.toString());
   const [customRadius, setCustomRadius] = useState('50');
   const [gpsLoading, setGpsLoading] = useState(false);
+
+  // Contact ITI Modal State
+  const [contactModal, setContactModal] = useState({
+    isOpen: false,
+    iti: null,
+    requirementId: null,
+    roleTitle: '',
+  });
+
+  // Active sub-tab per requirement: requirement.id -> 'applicants' | 'shortlisted' | 'rankedItis'
+  const [reqSubTab, setReqSubTab] = useState({});
+
+  // Expand AI rationale per applicant: applicant.id -> boolean
+  const [expandedRationale, setExpandedRationale] = useState({});
+
+  const handleContactIti = (iti, req = null) => {
+    setContactModal({
+      isOpen: true,
+      iti,
+      requirementId: req?.id || null,
+      roleTitle: req ? `${req.title} (${req.requiredTrade})` : '',
+    });
+  };
+
+  const handleUpdateApplicantStatus = async (requirementId, applicantId, status) => {
+    try {
+      setRequirements((prev) =>
+        prev.map((r) => {
+          if (r.id !== requirementId) return r;
+          const updatedApplicants = (r.applicants || []).map((app) =>
+            app.id === applicantId ? { ...app, status } : app
+          );
+          const updatedShortlisted = updatedApplicants.filter((a) =>
+            ['SHORTLISTED', 'INTERVIEW_SCHEDULED', 'SELECTED'].includes(a.status)
+          );
+          return {
+            ...r,
+            applicants: updatedApplicants,
+            shortlisted: updatedShortlisted,
+            shortlistedCount: updatedShortlisted.length,
+          };
+        })
+      );
+      await api.updateRequirementApplicantStatus(requirementId, applicantId, status);
+    } catch (err) {
+      console.error('Failed to update status:', err);
+      setError(err.message || 'Failed to update applicant status');
+    }
+  };
 
   // Nearby Top ITIs state
   const [topNearbyItis, setTopNearbyItis] = useState([]);
@@ -278,12 +334,13 @@ export function OfficerView() {
     try {
       const result = await api.createRequirement(job);
       if (!result.success) throw new Error(result.message || 'Unable to post job');
-      const postedJob = result.data;
-      setRequirements((previous) => [postedJob, ...previous]);
       setJob({ title: '', description: '', requiredTrade: '' });
       setActiveNav('requirements');
+      // Re-fetch all requirements to populate generated dummy applicants and AI confidence scores
+      const reqRes = await api.getRequirements();
+      if (reqRes.success) setRequirements(reqRes.data || []);
       try {
-        await matchITIs(postedJob);
+        await matchITIs(result.data);
       } catch {
         setError('Requirement posted, but matching ITIs failed. Use “Match ITIs” to retry.');
       }
@@ -493,8 +550,15 @@ export function OfficerView() {
             ) : (
               requirements.map((requirement) => {
                 const matches = recommendations[requirement.id] || [];
+                const applicants = requirement.applicants || [];
+                const shortlisted = applicants.filter((a) =>
+                  ['SHORTLISTED', 'INTERVIEW_SCHEDULED', 'SELECTED'].includes(a.status)
+                );
+                const activeTab = reqSubTab[requirement.id] || 'applicants';
+
                 return (
                   <section key={requirement.id} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                    {/* Job Header */}
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div>
                         <div className="flex items-center gap-2">
@@ -510,113 +574,409 @@ export function OfficerView() {
                         size="sm"
                         onClick={() => matchITIs(requirement)}
                         disabled={working[requirement.id]}
-                        className="shrink-0 border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                        className="shrink-0 border-indigo-200 text-indigo-700 hover:bg-indigo-50 text-xs"
                       >
                         {working[requirement.id] ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Compass className="mr-1.5 h-3.5 w-3.5" />}
                         Re-Rank Within {officerLocation.radiusKm} km
                       </Button>
                     </div>
 
-                    {matches.length > 0 && (
-                      <div className="mt-4 space-y-3">
-                        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                            Ranked ITIs for this requirement ({matches.length} matches within range)
-                          </p>
+                    {/* Metrics Strip */}
+                    <div className="mt-3.5 flex flex-wrap items-center gap-2 pt-3 border-t border-slate-100 text-xs">
+                      <div className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-50/70 px-2.5 py-1 text-indigo-800 border border-indigo-100 font-semibold">
+                        <Users className="h-3.5 w-3.5 text-indigo-600" />
+                        <span>{applicants.length} Total Applicants</span>
+                      </div>
+                      <div className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50/70 px-2.5 py-1 text-amber-800 border border-amber-200/60 font-semibold">
+                        <Star className="h-3.5 w-3.5 text-amber-600" />
+                        <span>{shortlisted.length} Shortlisted</span>
+                      </div>
+                      {requirement.topConfidenceScore && (
+                        <div className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50/70 px-2.5 py-1 text-emerald-800 border border-emerald-200/60 font-semibold">
+                          <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
+                          <span>{requirement.topConfidenceScore}% Top AI Match</span>
                         </div>
-                        <div className="grid gap-3">
-                          {matches.map((recommendation, idx) => (
-                            <div key={recommendation.id || recommendation.itiId} className="rounded-lg border border-slate-200 p-4 transition-all hover:border-slate-300 hover:shadow-xs">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <span className={`inline-flex items-center justify-center rounded px-2 py-0.5 text-xs font-bold ${
-                                      idx === 0 ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-slate-100 text-slate-700'
-                                    }`}>
-                                      #{idx + 1}
-                                    </span>
-                                    <p className="truncate text-base font-semibold text-slate-900">{recommendation.iti?.name || 'ITI'}</p>
-                                    {recommendation.iti?.isGovernment && (
-                                      <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 border border-emerald-200">
-                                        Government
-                                      </span>
-                                    )}
-                                  </div>
-                                  <p className="mt-1 text-xs text-slate-500">
-                                    {recommendation.iti?.code || 'No code'} • {recommendation.iti?.district}, {recommendation.iti?.state}
-                                  </p>
-                                </div>
-                                <div className="text-right shrink-0">
-                                  <div className="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-sm font-bold text-indigo-700 border border-indigo-200">
-                                    {Math.round(recommendation.score)}% Match
-                                  </div>
-                                </div>
-                              </div>
+                      )}
+                      <div className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1 text-slate-700 font-medium">
+                        <Building2 className="h-3.5 w-3.5 text-slate-500" />
+                        <span>{matches.length} ITIs In 50km</span>
+                      </div>
+                    </div>
 
-                              <div className="mt-3 flex flex-wrap gap-1.5">
-                                {(recommendation.reasons || []).map((reason, rIdx) => (
-                                  <span key={rIdx} className="rounded-md border border-slate-100 bg-slate-50 px-2 py-1 text-[11px] text-slate-600">
-                                    {reason}
-                                  </span>
-                                ))}
-                              </div>
+                    {/* Sub-Tab Navigation */}
+                    <div className="mt-4 flex border-b border-slate-200">
+                      <button
+                        onClick={() => setReqSubTab((prev) => ({ ...prev, [requirement.id]: 'applicants' }))}
+                        className={`flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold border-b-2 transition-all ${
+                          activeTab === 'applicants'
+                            ? 'border-indigo-600 text-indigo-700'
+                            : 'border-transparent text-slate-500 hover:text-slate-900'
+                        }`}
+                      >
+                        <Users className="h-3.5 w-3.5" />
+                        Applicants & AI Match ({applicants.length})
+                      </button>
+                      <button
+                        onClick={() => setReqSubTab((prev) => ({ ...prev, [requirement.id]: 'shortlisted' }))}
+                        className={`flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold border-b-2 transition-all ${
+                          activeTab === 'shortlisted'
+                            ? 'border-indigo-600 text-indigo-700'
+                            : 'border-transparent text-slate-500 hover:text-slate-900'
+                        }`}
+                      >
+                        <Star className="h-3.5 w-3.5" />
+                        Shortlisted Candidates ({shortlisted.length})
+                      </button>
+                      <button
+                        onClick={() => setReqSubTab((prev) => ({ ...prev, [requirement.id]: 'rankedItis' }))}
+                        className={`flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold border-b-2 transition-all ${
+                          activeTab === 'rankedItis'
+                            ? 'border-indigo-600 text-indigo-700'
+                            : 'border-transparent text-slate-500 hover:text-slate-900'
+                        }`}
+                      >
+                        <Building2 className="h-3.5 w-3.5" />
+                        Ranked ITIs ({matches.length})
+                      </button>
+                    </div>
 
-                              <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
-                                <span className="text-xs text-slate-500">
-                                  {recommendation.iti?._count?.workers || 0} registered candidates
-                                </span>
-                                <Button variant="outline" size="sm" onClick={() => toggleWorkers(recommendation, requirement)} disabled={working[recommendation.itiId]}>
-                                  {working[recommendation.itiId] ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <ChevronDown className="mr-1.5 h-3.5 w-3.5" />}
-                                  View Candidates
-                                </Button>
-                              </div>
+                    {/* Tab 1: APPLICANTS */}
+                    {activeTab === 'applicants' && (
+                      <div className="mt-4 space-y-3">
+                        {applicants.length === 0 ? (
+                          <p className="text-xs text-slate-400 py-3">No applicants registered yet for this requirement.</p>
+                        ) : (
+                          <div className="grid gap-3">
+                            {applicants.map((applicant) => {
+                              const isShort = ['SHORTLISTED', 'INTERVIEW_SCHEDULED', 'SELECTED'].includes(applicant.status);
+                              const isExpanded = expandedRationale[applicant.id];
 
-                              {workers[recommendation.itiId] && (
-                                <div className="mt-3 border-t border-slate-100 pt-3">
-                                  {workers[recommendation.itiId].length === 0 ? (
-                                    <p className="text-xs text-slate-400">No candidates currently registered for this trade at this ITI.</p>
-                                  ) : (
-                                    workers[recommendation.itiId].map((worker) => (
-                                      <div key={worker.id} className="flex items-center justify-between gap-3 border-b border-slate-50 py-2 text-sm last:border-0">
-                                        <div>
-                                          <span className="font-medium text-slate-800">{worker.fullName}</span>
-                                          <span className="ml-2 text-xs text-slate-500">
-                                            {worker.experienceYears || 0} yrs exp • {worker.certificationGrade || 'Grade A'}
-                                          </span>
+                              return (
+                                <div
+                                  key={applicant.id}
+                                  className={`rounded-xl border p-4 transition-all ${
+                                    isShort ? 'border-indigo-200 bg-indigo-50/20' : 'border-slate-200 bg-white hover:border-slate-300'
+                                  }`}
+                                >
+                                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-2.5 flex-wrap">
+                                        <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                                          {applicant.fullName.slice(0, 2).toUpperCase()}
                                         </div>
+                                        <h4 className="text-sm font-bold text-slate-900">{applicant.fullName}</h4>
+                                        <span className="rounded bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
+                                          {applicant.trade}
+                                        </span>
+                                        <span className="rounded bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 border border-emerald-200">
+                                          {applicant.certificationGrade}
+                                        </span>
+                                        <span className="text-xs text-slate-500">
+                                          {applicant.experienceYears} yrs experience
+                                        </span>
+                                      </div>
+
+                                      <p className="mt-1.5 text-xs text-slate-500 flex items-center gap-2 flex-wrap">
+                                        <span>🏛️ {applicant.iti?.name || 'Local ITI'}</span>
+                                        <span>•</span>
+                                        <span className="font-medium text-slate-700">📍 {applicant.distanceKm} km away</span>
+                                        <span>•</span>
+                                        <span>Applied {new Date(applicant.appliedAt).toLocaleDateString()}</span>
+                                      </p>
+                                    </div>
+
+                                    {/* Confidence Score Pill */}
+                                    <div className="flex items-center sm:flex-col sm:items-end gap-2 shrink-0">
+                                      <div
+                                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 border text-xs font-black shadow-2xs ${
+                                          applicant.confidenceScore >= 85
+                                            ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                                            : applicant.confidenceScore >= 75
+                                            ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                                            : 'bg-amber-50 text-amber-700 border-amber-200'
+                                        }`}
+                                      >
+                                        <Sparkles className="h-3.5 w-3.5" />
+                                        <span>{applicant.confidenceScore}% AI Confidence</span>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setExpandedRationale((prev) => ({
+                                            ...prev,
+                                            [applicant.id]: !prev[applicant.id],
+                                          }))
+                                        }
+                                        className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-0.5"
+                                      >
+                                        {isExpanded ? 'Hide Match Rationale' : 'AI Match Breakdown'}
+                                        {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  {/* Expandable AI Breakdown */}
+                                  {isExpanded && (
+                                    <div className="mt-3 rounded-lg bg-slate-50 p-3 border border-slate-200/70 text-xs space-y-2 animate-in fade-in">
+                                      <p className="text-slate-700 font-medium leading-relaxed">
+                                        💡 <strong className="text-slate-900">AI Recommendation Rationale:</strong> {applicant.aiRationale}
+                                      </p>
+                                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 border-t border-slate-200/50 text-[11px]">
+                                        <div>
+                                          <span className="text-slate-400 block text-[10px]">Trade Alignment</span>
+                                          <strong className="text-slate-800">{applicant.confidenceBreakdown?.tradeAlignment}%</strong>
+                                        </div>
+                                        <div>
+                                          <span className="text-slate-400 block text-[10px]">Skill Proficiency</span>
+                                          <strong className="text-slate-800">{applicant.confidenceBreakdown?.skillProficiency}%</strong>
+                                        </div>
+                                        <div>
+                                          <span className="text-slate-400 block text-[10px]">Practical Test</span>
+                                          <strong className="text-slate-800">{applicant.confidenceBreakdown?.practicalAssessment}%</strong>
+                                        </div>
+                                        <div>
+                                          <span className="text-slate-400 block text-[10px]">Proximity Pts</span>
+                                          <strong className="text-slate-800">{applicant.confidenceBreakdown?.proximityScore}/25 pts</strong>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Skills pills */}
+                                  <div className="mt-2.5 flex flex-wrap gap-1">
+                                    {(applicant.skills || []).map((sk, sIdx) => (
+                                      <span key={sIdx} className="rounded bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600 font-medium">
+                                        {sk}
+                                      </span>
+                                    ))}
+                                  </div>
+
+                                  {/* Card Actions Footer */}
+                                  <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs text-slate-500 font-medium">Status:</span>
+                                      <select
+                                        className={`rounded border px-2 py-1 text-xs font-semibold ${
+                                          applicant.status === 'SELECTED'
+                                            ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                            : applicant.status === 'SHORTLISTED' || applicant.status === 'INTERVIEW_SCHEDULED'
+                                            ? 'bg-indigo-50 text-indigo-800 border-indigo-200'
+                                            : 'bg-slate-50 text-slate-700 border-slate-200'
+                                        }`}
+                                        value={applicant.status}
+                                        onChange={(e) => handleUpdateApplicantStatus(requirement.id, applicant.id, e.target.value)}
+                                      >
+                                        <option value="APPLIED">Applied</option>
+                                        <option value="SHORTLISTED">Shortlisted</option>
+                                        <option value="INTERVIEW_SCHEDULED">Interview Scheduled</option>
+                                        <option value="SELECTED">Selected</option>
+                                        <option value="REJECTED">Rejected</option>
+                                      </select>
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                      {applicant.status === 'APPLIED' && (
                                         <Button
                                           size="sm"
-                                          variant="outline"
-                                          className="border-indigo-200 text-indigo-700 hover:bg-indigo-50"
-                                          onClick={async () => {
-                                            try {
-                                              await api.addToShortlist({ workerId: worker.id, requirementId: requirement.id });
-                                              const result = await api.getShortlists();
-                                              if (result.success) setShortlists(result.data || []);
-                                            } catch (err) {
-                                              setError(err.message || 'Unable to shortlist candidate');
-                                            }
-                                          }}
+                                          className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs h-8"
+                                          onClick={() => handleUpdateApplicantStatus(requirement.id, applicant.id, 'SHORTLISTED')}
                                         >
-                                          Shortlist
+                                          <Star className="mr-1.5 h-3.5 w-3.5" />
+                                          Shortlist Candidate
                                         </Button>
-                                      </div>
-                                    ))
-                                  )}
+                                      )}
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="border-slate-300 text-slate-700 hover:bg-slate-50 text-xs h-8"
+                                        onClick={() => handleContactIti(applicant.iti, requirement)}
+                                      >
+                                        <Phone className="mr-1.5 h-3.5 w-3.5 text-indigo-600" />
+                                        Contact ITI
+                                      </Button>
+                                    </div>
+                                  </div>
                                 </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     )}
-                    {!matches.length && recommendations[requirement.id] && (
-                      <p className="mt-4 text-sm text-slate-400">No active ITIs found within range.</p>
+
+                    {/* Tab 2: SHORTLISTED */}
+                    {activeTab === 'shortlisted' && (
+                      <div className="mt-4 space-y-3">
+                        {shortlisted.length === 0 ? (
+                          <div className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-xs text-slate-400">
+                            No candidates shortlisted yet for this job. Switch to the "Applicants" tab and click "Shortlist Candidate" on top matches.
+                          </div>
+                        ) : (
+                          <div className="grid gap-3">
+                            {shortlisted.map((cand) => (
+                              <div key={cand.id} className="rounded-xl border border-indigo-200 bg-indigo-50/20 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-bold text-sm text-slate-900">{cand.fullName}</span>
+                                    <span className="rounded bg-indigo-100 px-2 py-0.5 text-[10px] font-bold text-indigo-800">
+                                      {cand.trade}
+                                    </span>
+                                    <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
+                                      🎯 {cand.confidenceScore}% Confidence
+                                    </span>
+                                  </div>
+                                  <p className="mt-1 text-xs text-slate-500">
+                                    {cand.experienceYears} yrs exp • {cand.iti?.name || 'ITI'} • 📍 {cand.distanceKm} km away
+                                  </p>
+                                </div>
+
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <select
+                                    className="rounded border border-indigo-200 bg-white px-2 py-1 text-xs font-semibold text-indigo-900"
+                                    value={cand.status}
+                                    onChange={(e) => handleUpdateApplicantStatus(requirement.id, cand.id, e.target.value)}
+                                  >
+                                    <option value="SHORTLISTED">Shortlisted</option>
+                                    <option value="INTERVIEW_SCHEDULED">Interview Scheduled</option>
+                                    <option value="SELECTED">Selected</option>
+                                    <option value="REJECTED">Remove / Reject</option>
+                                  </select>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-slate-300 text-slate-700 hover:bg-slate-50 text-xs"
+                                    onClick={() => handleContactIti(cand.iti, requirement)}
+                                  >
+                                    <Phone className="mr-1 h-3.5 w-3.5 text-indigo-600" />
+                                    Contact ITI
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     )}
-                    {!recommendations[requirement.id] && (
-                      <button className="mt-4 text-xs text-indigo-600 hover:underline" onClick={() => loadRecommendations(requirement)}>
-                        Load previous matches &rarr;
-                      </button>
+
+                    {/* Tab 3: RANKED ITIS */}
+                    {activeTab === 'rankedItis' && (
+                      <div className="mt-4 space-y-3">
+                        {matches.length === 0 ? (
+                          <div className="py-4 text-center">
+                            <p className="text-xs text-slate-400">No active ITIs loaded within range yet.</p>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="mt-2 text-xs border-indigo-200 text-indigo-700"
+                              onClick={() => matchITIs(requirement)}
+                            >
+                              <Compass className="mr-1.5 h-3.5 w-3.5" />
+                              Find & Match Nearby ITIs
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="grid gap-3">
+                            {matches.map((recommendation, idx) => (
+                              <div key={recommendation.id || recommendation.itiId} className="rounded-lg border border-slate-200 p-4 transition-all hover:border-slate-300 hover:shadow-xs">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <span className={`inline-flex items-center justify-center rounded px-2 py-0.5 text-xs font-bold ${
+                                        idx === 0 ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-slate-100 text-slate-700'
+                                      }`}>
+                                        #{idx + 1}
+                                      </span>
+                                      <p className="truncate text-base font-semibold text-slate-900">{recommendation.iti?.name || 'ITI'}</p>
+                                      {recommendation.iti?.isGovernment && (
+                                        <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 border border-emerald-200">
+                                          Government
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="mt-1 text-xs text-slate-500">
+                                      {recommendation.iti?.code || 'No code'} • {recommendation.iti?.district}, {recommendation.iti?.state}
+                                    </p>
+                                    {recommendation.iti?.contacts?.tpo && (
+                                      <p className="mt-1 text-[11px] text-slate-400">
+                                        📞 TPO: {recommendation.iti.contacts.tpo.name} ({recommendation.iti.contacts.tpo.phone})
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div className="text-right shrink-0">
+                                    <div className="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-sm font-bold text-indigo-700 border border-indigo-200">
+                                      {Math.round(recommendation.score)}% Match
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="mt-3 flex flex-wrap gap-1.5">
+                                  {(recommendation.reasons || []).map((reason, rIdx) => (
+                                    <span key={rIdx} className="rounded-md border border-slate-100 bg-slate-50 px-2 py-1 text-[11px] text-slate-600">
+                                      {reason}
+                                    </span>
+                                  ))}
+                                </div>
+
+                                <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
+                                  <span className="text-xs text-slate-500">
+                                    {recommendation.iti?._count?.workers || 0} registered candidates
+                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 text-xs"
+                                      onClick={() => handleContactIti(recommendation.iti, requirement)}
+                                    >
+                                      <Phone className="mr-1.5 h-3.5 w-3.5" />
+                                      Contact ITI
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={() => toggleWorkers(recommendation, requirement)} disabled={working[recommendation.itiId]}>
+                                      {working[recommendation.itiId] ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <ChevronDown className="mr-1.5 h-3.5 w-3.5" />}
+                                      Candidates
+                                    </Button>
+                                  </div>
+                                </div>
+
+                                {workers[recommendation.itiId] && (
+                                  <div className="mt-3 border-t border-slate-100 pt-3">
+                                    {workers[recommendation.itiId].length === 0 ? (
+                                      <p className="text-xs text-slate-400">No candidates currently registered for this trade at this ITI.</p>
+                                    ) : (
+                                      workers[recommendation.itiId].map((worker) => (
+                                        <div key={worker.id} className="flex items-center justify-between gap-3 border-b border-slate-50 py-2 text-sm last:border-0">
+                                          <div>
+                                            <span className="font-medium text-slate-800">{worker.fullName}</span>
+                                            <span className="ml-2 text-xs text-slate-500">
+                                              {worker.experienceYears || 0} yrs exp • {worker.certificationGrade || 'Grade A'}
+                                            </span>
+                                          </div>
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 text-xs"
+                                            onClick={async () => {
+                                              try {
+                                                await api.addToShortlist({ workerId: worker.id, requirementId: requirement.id });
+                                                const result = await api.getShortlists();
+                                                if (result.success) setShortlists(result.data || []);
+                                              } catch (err) {
+                                                setError(err.message || 'Unable to shortlist candidate');
+                                              }
+                                            }}
+                                          >
+                                            Shortlist
+                                          </Button>
+                                        </div>
+                                      ))
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     )}
                   </section>
                 );
@@ -822,13 +1182,31 @@ export function OfficerView() {
 
                         {/* Actions Footer */}
                         <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between">
-                          <span className="text-xs text-slate-500 font-medium">
-                            {iti.activeWorkersCount || 0} verified available candidate{iti.activeWorkersCount === 1 ? '' : 's'}
-                          </span>
-                          <Button variant="outline" size="sm" onClick={() => toggleWorkers(iti, null)} disabled={working[iti.id]}>
-                            {working[iti.id] ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <ChevronDown className="mr-1.5 h-3.5 w-3.5" />}
-                            Candidates
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-slate-500 font-medium">
+                              {iti.activeWorkersCount || 0} verified candidate{iti.activeWorkersCount === 1 ? '' : 's'}
+                            </span>
+                            {iti.contacts?.tpo && (
+                              <span className="hidden md:inline-flex items-center gap-1 text-[11px] text-slate-400">
+                                • TPO: {iti.contacts.tpo.name} ({iti.contacts.tpo.phone})
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 text-xs"
+                              onClick={() => handleContactIti(iti)}
+                            >
+                              <Phone className="mr-1.5 h-3.5 w-3.5" />
+                              Contact ITI
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => toggleWorkers(iti, null)} disabled={working[iti.id]}>
+                              {working[iti.id] ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <ChevronDown className="mr-1.5 h-3.5 w-3.5" />}
+                              Candidates
+                            </Button>
+                          </div>
                         </div>
 
                         {/* Expanded Candidates Drawer */}
@@ -884,10 +1262,25 @@ export function OfficerView() {
                         <p className="mt-0.5 text-xs text-slate-500">
                           {item.code || 'No code'} • {item.district}, {item.state}
                         </p>
+                        {item.contacts?.tpo && (
+                          <p className="mt-1 text-[11px] text-slate-400">
+                            📞 TPO: {item.contacts.tpo.name} ({item.contacts.tpo.phone})
+                          </p>
+                        )}
                       </div>
-                      <span className="shrink-0 rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
-                        {item._count?.workers || 0} candidates
-                      </span>
+                      <div className="flex flex-col items-end gap-1.5 shrink-0">
+                        <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
+                          {item._count?.workers || 0} candidates
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs text-indigo-600 hover:bg-indigo-50 px-2"
+                          onClick={() => handleContactIti(item)}
+                        >
+                          <Phone className="mr-1 h-3 w-3" /> Contact
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -957,6 +1350,16 @@ export function OfficerView() {
           </div>
         )}
       </div>
+
+      {/* Contact ITI Modal */}
+      <ContactItiModal
+        isOpen={contactModal.isOpen}
+        onClose={() => setContactModal((prev) => ({ ...prev, isOpen: false }))}
+        iti={contactModal.iti}
+        requirements={requirements}
+        initialRequirementId={contactModal.requirementId}
+        initialRoleTitle={contactModal.roleTitle}
+      />
     </DashboardLayout>
   );
 }

@@ -1,5 +1,6 @@
 import prisma from '../config/prisma.js';
 import crypto from 'crypto';
+import { generateITIContacts, recordContactInquiry, getContactInquiries } from '../utils/dummyData.js';
 
 /**
  * Helper to update PostGIS location for an ITI if lat & lng are provided.
@@ -108,8 +109,12 @@ export const getITIs = async (req, res) => {
 
     // Attach coordinates in batch
     const itisWithCoords = await Promise.all(itis.map(attachCoordinates));
+    const itisWithContacts = itisWithCoords.map((item) => ({
+      ...item,
+      contacts: generateITIContacts(item),
+    }));
 
-    return res.json({ success: true, itis: itisWithCoords, count: itis.length });
+    return res.json({ success: true, itis: itisWithContacts, count: itis.length });
   } catch (err) {
     console.error('Error fetching ITIs:', err);
     return res.status(500).json({ success: false, message: 'Server error' });
@@ -150,7 +155,13 @@ export const getITIById = async (req, res) => {
     }
 
     const fullIti = await attachCoordinates(iti);
-    return res.json({ success: true, iti: fullIti });
+    return res.json({
+      success: true,
+      iti: {
+        ...fullIti,
+        contacts: generateITIContacts(fullIti),
+      },
+    });
   } catch (err) {
     console.error('Error fetching ITI:', err);
     return res.status(500).json({ success: false, message: 'Server error' });
@@ -333,6 +344,7 @@ export const getTopNearbyITIs = async (req, res) => {
         reasons,
         activeWorkersCount: totalWorkers,
         matchingTradeWorkersCount: tradeWorkers,
+        contacts: generateITIContacts(iti),
       };
     });
 
@@ -353,3 +365,70 @@ export const getTopNearbyITIs = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
+// POST /api/v1/itis/:id/contact - Officer contacts specific ITI for a role or placement
+export const contactITI = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const iti = await prisma.iTI.findUnique({
+      where: { id },
+      select: { id: true, name: true, district: true }
+    });
+
+    if (!iti) {
+      return res.status(404).json({ success: false, message: 'ITI not found' });
+    }
+
+    const {
+      requirementId,
+      roleTitle,
+      contactRole = 'TPO',
+      inquiryType = 'BATCH_REQUEST',
+      subject,
+      message,
+      urgency = 'NORMAL',
+    } = req.body;
+
+    const officerId = req.user.officerProfile?.id || req.user.id;
+    const officerName = req.user.officerProfile?.district
+      ? `${req.user.officerProfile.district} Nodal Officer`
+      : 'Placement Officer';
+
+    const inquiry = recordContactInquiry({
+      itiId: iti.id,
+      itiName: iti.name,
+      officerId,
+      officerName,
+      requirementId,
+      roleTitle,
+      contactRole,
+      inquiryType,
+      subject,
+      message,
+      urgency,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: `Inquiry successfully sent to ${iti.name} (${contactRole})`,
+      data: inquiry,
+    });
+  } catch (err) {
+    console.error('Error contacting ITI:', err);
+    return res.status(500).json({ success: false, message: 'Failed to contact ITI' });
+  }
+};
+
+// GET /api/v1/itis/:id/contact-inquiries - Get past inquiries sent to this ITI
+export const getITIContactInquiries = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const officerId = req.user.officerProfile?.id || req.user.id;
+    const inquiries = getContactInquiries(id, req.user.role === 'ADMIN' ? null : officerId);
+    return res.json({ success: true, count: inquiries.length, data: inquiries });
+  } catch (err) {
+    console.error('Error fetching ITI contact inquiries:', err);
+    return res.status(500).json({ success: false, message: 'Failed to fetch inquiries' });
+  }
+};
+

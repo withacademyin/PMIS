@@ -6,7 +6,9 @@ import {
   getITIById,
   getTopNearbyITIs,
   updateITI,
-  deleteITI
+  deleteITI,
+  contactITI,
+  getITIContactInquiries,
 } from '../controllers/itiController.js';
 import { getITIWorkers } from '../controllers/itiRecommendationController.js';
 
@@ -18,6 +20,8 @@ router.use(requireAuth);
 router.get('/top-nearby', getTopNearbyITIs);
 router.get('/', getITIs);
 router.get('/:id/workers', getITIWorkers);
+router.post('/:id/contact', contactITI);
+router.get('/:id/contact-inquiries', getITIContactInquiries);
 router.get('/:id', getITIById);
 
 // Admin-only management endpoints

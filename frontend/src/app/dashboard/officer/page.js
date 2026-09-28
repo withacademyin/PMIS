@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import Navbar from '@/components/Navbar';
-import OfficerView from '@/views/OfficerView';
+import RadarView from '@/views/RadarView';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 
@@ -11,24 +11,19 @@ export default function OfficerDashboard() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading) {
-      if (!user) {
-        router.replace('/auth/login?role=officer');
-      } else if (user.role.toLowerCase() !== 'officer') {
+    if (!loading && user) {
+      const role = user.role?.toLowerCase();
+      if (role !== 'officer' && role !== 'admin') {
         router.replace('/');
       }
     }
   }, [user, loading, router]);
 
-  if (loading || !user || user.role.toLowerCase() !== 'officer') {
-    return null;
-  }
-
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-slate-50/60">
       <Navbar />
       <main className="flex-1">
-        <OfficerView />
+        <RadarView />
       </main>
     </div>
   );

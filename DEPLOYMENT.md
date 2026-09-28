@@ -59,17 +59,31 @@ OPENAI_API_KEY="your_openai_api_key"
 The frontend is a standard Next.js application that communicates with the deployed backend.
 
 ### Environment Variables Required
-Configure this in Vercel for the frontend project:
+Configure these in Vercel / Netlify for the frontend:
 
 ```env
 # Point this to your deployed Backend URL
 BACKEND_API_URL="https://your-deployed-backend-url.onrender.com/api"
+NEXT_PUBLIC_API_URL="https://your-deployed-backend-url.onrender.com/api"
+
+# Carto Basemaps API Key (For Live Real Radar Map)
+NEXT_PUBLIC_CARTO_API_KEY="cb1_40zk_1_8df9d09851341ba1a4182945"
 ```
 
-### Build & Start Commands
-- **Framework Preset**: Next.js (Vercel automatically detects this).
-- **Root Directory**: `frontend` (Ensure you set the root directory in Vercel settings so it builds the frontend properly).
+### Build & Deploy Settings (Vercel)
+- **Framework Preset**: Next.js (automatically detected)
+- **Root Directory**: `frontend`
 - **Build Command**: `npm run build`
+### Git & Deployment Flow (Simple, No CI/CD)
+This project is configured for direct, simple deployment without complex CI/CD pipelines:
+- Simply push your code directly to GitHub: `git push origin <branch>`
+- Connect your GitHub repository directly to **Vercel** (for frontend) and **Render** / **Railway** (for backend).
+- Both platforms auto-deploy whenever you push changes to your branch.
+- To populate a fresh Neon database with the 1,538 ITIs and coordinates:
+  ```bash
+  cd backend
+  DATABASE_URL="your-neon-url" npm run db:init
+  ```
 
 ---
 
