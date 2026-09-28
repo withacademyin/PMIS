@@ -46,7 +46,7 @@ export function RadarSidebar({
   };
 
   return (
-    <aside className="w-68 flex flex-col border-r border-slate-200 bg-white min-h-screen shrink-0 select-none shadow-[1px_0_4px_rgba(0,0,0,0.02)]">
+    <aside className="w-68 flex flex-col border-r border-slate-200 bg-white h-full shrink-0 select-none shadow-[1px_0_4px_rgba(0,0,0,0.02)]">
       {/* ── Brand Header ── */}
       <div className="p-4 border-b border-slate-100 bg-gradient-to-b from-slate-50/80 to-white">
         <div className="flex items-start gap-2.5">

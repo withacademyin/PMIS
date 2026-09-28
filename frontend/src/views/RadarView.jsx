@@ -227,9 +227,9 @@ export function RadarView() {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50/60 font-sans">
+    <div className="flex min-h-[calc(100vh-5rem)] bg-slate-50/60 font-sans">
       {/* ── Desktop Sidebar ── */}
-      <div className="hidden lg:block shrink-0 sticky top-0 h-screen z-30">
+      <div className="hidden lg:block shrink-0 sticky top-20 h-[calc(100vh-5rem)] z-30">
         <RadarSidebar
           activeNav={activeNav}
           onNavChange={(nav) => setActiveNav(nav)}
