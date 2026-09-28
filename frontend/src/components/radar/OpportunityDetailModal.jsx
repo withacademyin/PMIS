@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { api } from '@/lib/api';
+import { matchOpportunityInstitutions } from '@/lib/opportunityMatcher';
 import {
   X,
   AlertTriangle,
@@ -28,12 +30,34 @@ export function OpportunityDetailModal({
   onShareBulletin,
 }) {
   const [catchmentTime, setCatchmentTime] = useState('60');
+  const [asyncInstitutions, setAsyncInstitutions] = useState(null);
+
+  useEffect(() => {
+    if (!isOpen || !opportunity) return;
+    const existing =
+      opportunity.catchmentInstitutions?.[catchmentTime] ||
+      opportunity.catchmentInstitutions?.['60'];
+
+    if (!existing || existing.length === 0) {
+      const oppDistrict = opportunity.district || 'Gorakhpur';
+      api.getITIs({ district: oppDistrict })
+        .then((res) => {
+          if (res?.success && Array.isArray(res.itis) && res.itis.length > 0) {
+            const matchResult = matchOpportunityInstitutions(opportunity, res.itis);
+            setAsyncInstitutions(matchResult.catchmentInstitutions);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isOpen, opportunity, catchmentTime]);
 
   if (!isOpen || !opportunity) return null;
 
   const matchedInstitutions =
     opportunity.catchmentInstitutions?.[catchmentTime] ||
     opportunity.catchmentInstitutions?.['60'] ||
+    asyncInstitutions?.[catchmentTime] ||
+    asyncInstitutions?.['60'] ||
     [];
 
   const isHigh = opportunity.risk === 'HIGH';

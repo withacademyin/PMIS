@@ -46,6 +46,14 @@ export function RadarView() {
   const [liveInstitutions, setLiveInstitutions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [globalDistrict, setGlobalDistrict] = useState('ALL');
+
+  const uniqueDistricts = useMemo(() => {
+    const oppDistricts = liveOpportunities.map((op) => op.district);
+    const instDistricts = liveInstitutions.map((inst) => inst.district);
+    return Array.from(new Set([...oppDistricts, ...instDistricts])).filter(Boolean).sort();
+  }, [liveOpportunities, liveInstitutions]);
+
   // Active officer profile data
   const officerProfile = useMemo(() => ({
     ...NODAL_OFFICER_PROFILE,
@@ -60,31 +68,41 @@ export function RadarView() {
     const loadRadarData = async () => {
       try {
         setIsLoading(true);
-        const targetDistrict = officerProfile.district || 'Gorakhpur';
 
-        // Concurrently fetch requirements and institutes
-        const [reqRes, itiRes] = await Promise.all([
-          api.getRequirements().catch((err) => {
-            console.warn('Live requirements API unavailable, using fallback data:', err);
-            return { success: false };
-          }),
-          api.getITIs({ district: targetDistrict }).catch((err) => {
-            console.warn('District ITIs API unavailable:', err);
-            return { success: false };
-          }),
-        ]);
+        // Concurrently fetch requirements and baseline ITIs
+        const reqRes = await api.getRequirements().catch((err) => {
+          console.warn('Live requirements API unavailable, using fallback data:', err);
+          return { success: false };
+        });
 
-        let rawItis = [];
-        if (itiRes?.success && Array.isArray(itiRes.itis) && itiRes.itis.length > 0) {
-          rawItis = itiRes.itis;
-        } else {
-          // If specific district returned empty or unauthenticated, fetch broader ITIs
-          const fallbackItisRes = await api.getITIs('?all=true&limit=60').catch(() => ({ success: false }));
-          if (fallbackItisRes?.success && Array.isArray(fallbackItisRes.itis) && fallbackItisRes.itis.length > 0) {
-            rawItis = fallbackItisRes.itis;
-          } else {
-            rawItis = INSTITUTIONS;
-          }
+        // Determine all districts to fetch ITIs for (all districts where opportunities exist + officer district)
+        const oppDistricts = (reqRes?.data || []).map((r) => {
+          const match = (r.jdText || '').match(/District:\s*([^\n\r]+)/i);
+          return match ? match[1].trim() : null;
+        }).filter(Boolean);
+
+        const allDistricts = Array.from(
+          new Set([
+            ...oppDistricts,
+            officerProfile.district || 'Gorakhpur',
+            'Firozabad',
+            'Gorakhpur'
+          ])
+        );
+
+        // Fetch ITIs across all relevant districts in parallel
+        const itiResults = await Promise.all(
+          allDistricts.map((d) =>
+            api.getITIs({ district: d }).catch(() => ({ success: false }))
+          )
+        );
+
+        let rawItis = itiResults.flatMap((r) =>
+          r.success && Array.isArray(r.itis) ? r.itis : []
+        );
+
+        if (rawItis.length === 0) {
+          rawItis = INSTITUTIONS;
         }
 
         const normalizedItis = rawItis.map(normalizeInstitution).filter(Boolean);
@@ -96,7 +114,7 @@ export function RadarView() {
             const jdLines = (req.jdText || '').split('\n');
             const companyLine = jdLines.find((l) => l.startsWith('Company:')) || 'Company: Industrial Partner';
             const stipendLine = jdLines.find((l) => l.startsWith('Stipend:')) || 'Stipend: ₹8,000 / month';
-            const districtLine = jdLines.find((l) => l.startsWith('District:')) || `District: ${targetDistrict}`;
+            const districtLine = jdLines.find((l) => l.startsWith('District:')) || `District: ${officerProfile.district || 'Gorakhpur'}`;
             const latLine = jdLines.find((l) => l.startsWith('Lat:')) || 'Lat: 26.75';
             const lngLine = jdLines.find((l) => l.startsWith('Lng:')) || 'Lng: 83.38';
             const riskLine = jdLines.find((l) => l.startsWith('Risk:')) || 'Risk: MEDIUM';
@@ -279,6 +297,9 @@ export function RadarView() {
               opportunities={liveOpportunities}
               institutions={liveInstitutions}
               priorityActions={PRIORITY_ACTIONS}
+              globalDistrict={globalDistrict}
+              setGlobalDistrict={setGlobalDistrict}
+              uniqueDistricts={uniqueDistricts}
               onSelectOpportunity={handleOpenOpportunityModal}
               onPlanCamp={handlePlanCamp}
               onShareBulletin={handleShareBulletin}
@@ -293,6 +314,9 @@ export function RadarView() {
             <RadarOpportunities
               opportunities={liveOpportunities}
               initialFilters={opportunityFilters}
+              globalDistrict={globalDistrict}
+              setGlobalDistrict={setGlobalDistrict}
+              uniqueDistricts={uniqueDistricts}
               onSelectOpportunity={handleOpenOpportunityModal}
               onPlanCamp={handlePlanCamp}
               onShareBulletin={handleShareBulletin}
@@ -303,6 +327,9 @@ export function RadarView() {
             <RadarInstitutions
               institutions={liveInstitutions}
               opportunities={liveOpportunities}
+              globalDistrict={globalDistrict}
+              setGlobalDistrict={setGlobalDistrict}
+              uniqueDistricts={uniqueDistricts}
               onPlanCamp={handlePlanCamp}
               onSelectOpportunity={handleOpenOpportunityModal}
             />
@@ -311,6 +338,9 @@ export function RadarView() {
           {activeNav === 'bulletins' && (
             <RadarBulletins
               opportunities={liveOpportunities}
+              globalDistrict={globalDistrict}
+              setGlobalDistrict={setGlobalDistrict}
+              uniqueDistricts={uniqueDistricts}
               selectedOppId={preselectedOpp?.id}
               onSelectOpportunity={handleOpenOpportunityModal}
             />
@@ -320,6 +350,9 @@ export function RadarView() {
             <RadarCampPlans
               opportunities={liveOpportunities}
               institutions={liveInstitutions}
+              globalDistrict={globalDistrict}
+              setGlobalDistrict={setGlobalDistrict}
+              uniqueDistricts={uniqueDistricts}
               preselectedOpportunity={preselectedOpp}
               nodalOfficer={officerProfile}
             />

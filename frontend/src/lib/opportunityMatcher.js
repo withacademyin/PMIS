@@ -221,13 +221,21 @@ export function matchOpportunityInstitutions(opportunity, institutions = []) {
       const inst = normalizeInstitution(rawInst);
       if (!inst) return null;
 
+      const isSameDistrict =
+        Boolean(opportunity.district && inst.district) &&
+        opportunity.district.trim().toLowerCase() === inst.district.trim().toLowerCase();
+
       const distanceKm = calculateDistanceKm(
         oppLat,
         oppLng,
         inst.coordinates.lat,
         inst.coordinates.lng
       );
-      const travelTimeMin = estimateTravelTimeMin(distanceKm);
+      
+      const rawTravelTime = estimateTravelTimeMin(distanceKm);
+      // If institution is located within the same administrative district, bound commute time reasonably
+      const travelTimeMin = isSameDistrict ? Math.min(rawTravelTime, 35) : rawTravelTime;
+
       const match = evaluateTradeMatch(
         inst.trades,
         opportunity.qualification,
@@ -242,16 +250,18 @@ export function matchOpportunityInstitutions(opportunity, institutions = []) {
 
       const why =
         match.strength === 'EXACT'
-          ? `Exact trade match (${match.trade}), ${travelTimeMin} min away (${distanceKm} km), ~${availableSeats} final-year students.`
+          ? `Exact trade match (${match.trade}), ${travelTimeMin} min away in ${inst.district}, ~${availableSeats} final-year candidates.`
           : match.strength === 'RELATED'
-          ? `Related technical stream (${match.trade}), ${travelTimeMin} min away (${distanceKm} km), ~${availableSeats} capacity.`
-          : `Allied technical institute (${match.trade}), ${travelTimeMin} min regional commute.`;
+          ? `Related technical stream (${match.trade}), ${travelTimeMin} min away in ${inst.district}, ~${availableSeats} capacity.`
+          : `Allied technical institute (${match.trade}), ${travelTimeMin} min commute radius in ${inst.district}.`;
 
       return {
         id: inst.id,
         name: inst.name,
         shortName: inst.shortName,
         type: inst.type,
+        district: inst.district,
+        isSameDistrict,
         travelTimeMin,
         distanceKm,
         matchStrength: match.strength,
@@ -265,8 +275,9 @@ export function matchOpportunityInstitutions(opportunity, institutions = []) {
     })
     .filter(Boolean);
 
-  // Sort within each bucket: EXACT > RELATED > ALLIED, then travelTimeMin asc, then availableSeats desc
+  // Sort: Same district first, then EXACT > RELATED > ALLIED, then travelTimeMin asc, then availableSeats desc
   const sortFn = (a, b) => {
+    if (a.isSameDistrict !== b.isSameDistrict) return a.isSameDistrict ? -1 : 1;
     if (a.strengthRank !== b.strengthRank) return a.strengthRank - b.strengthRank;
     if (a.travelTimeMin !== b.travelTimeMin) return a.travelTimeMin - b.travelTimeMin;
     return b.availableSeats - a.availableSeats;
@@ -276,12 +287,12 @@ export function matchOpportunityInstitutions(opportunity, institutions = []) {
   const within45 = scored.filter((i) => i.travelTimeMin <= 45).sort(sortFn);
   const within60 = scored.filter((i) => i.travelTimeMin <= 60).sort(sortFn);
 
-  // Fallback so catchment tabs are never blank
+  // Fallback so catchment tabs are never blank (prioritizing same district / closest trade matches)
   const fallbackList = [...scored].sort(sortFn).slice(0, 5);
 
   const catchmentInstitutions = {
-    '30': within30.length > 0 ? within30 : fallbackList.slice(0, 2),
-    '45': within45.length > 0 ? within45 : fallbackList.slice(0, 3),
+    '30': within30.length > 0 ? within30 : fallbackList.slice(0, 3),
+    '45': within45.length > 0 ? within45 : fallbackList.slice(0, 4),
     '60': within60.length > 0 ? within60 : fallbackList,
   };
 

@@ -22,8 +22,11 @@ import { normalizeInstitution, evaluateTradeMatch } from '@/lib/opportunityMatch
 export function RadarInstitutions({
   institutions = [],
   opportunities = [],
+  globalDistrict = 'ALL',
+  setGlobalDistrict,
+  uniqueDistricts = [],
   onPlanCamp,
-  onSelectOpportunity
+  onSelectOpportunity,
 }) {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('ALL'); // ALL, ITI, Polytechnic, College
@@ -33,6 +36,13 @@ export function RadarInstitutions({
     const rawList = institutions && institutions.length > 0 ? institutions : INSTITUTIONS;
     return rawList.map(normalizeInstitution).filter(Boolean);
   }, [institutions]);
+
+  const districtFilteredList = useMemo(() => {
+    if (!globalDistrict || globalDistrict === 'ALL') return normalizedList;
+    return normalizedList.filter(
+      (inst) => inst.district?.toLowerCase() === globalDistrict.toLowerCase()
+    );
+  }, [normalizedList, globalDistrict]);
 
   const [selectedInstitutionId, setSelectedInstitutionId] = useState(
     normalizedList[0]?.id || 'INST-001'
@@ -58,7 +68,7 @@ export function RadarInstitutions({
   };
 
   const filteredInstitutions = useMemo(() => {
-    return normalizedList.filter((inst) => {
+    return districtFilteredList.filter((inst) => {
       const q = search.toLowerCase();
       const matchesSearch =
         !q ||
@@ -74,10 +84,10 @@ export function RadarInstitutions({
 
       return matchesSearch && matchesType;
     });
-  }, [normalizedList, search, typeFilter]);
+  }, [districtFilteredList, search, typeFilter]);
 
   const selectedInstitution =
-    normalizedList.find((i) => i.id === selectedInstitutionId) ||
+    districtFilteredList.find((i) => i.id === selectedInstitutionId) ||
     filteredInstitutions[0] ||
     normalizedList[0];
 
@@ -106,7 +116,21 @@ export function RadarInstitutions({
         </div>
 
         {/* Search & Filter */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* District Filter */}
+          <select
+            value={globalDistrict}
+            onChange={(e) => setGlobalDistrict(e.target.value)}
+            className="py-1.5 px-2.5 text-xs rounded-lg border border-slate-200 bg-emerald-50 text-emerald-800 font-bold focus:ring-1 focus:ring-emerald-600"
+          >
+            <option value="ALL">All Districts</option>
+            {uniqueDistricts?.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+
           <div className="relative">
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
