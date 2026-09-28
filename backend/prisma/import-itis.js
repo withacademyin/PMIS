@@ -143,7 +143,7 @@ async function main() {
   let skipped = 0;
 
   // Process in chunks to avoid overwhelming the DB
-  const CHUNK_SIZE = 50;
+  const CHUNK_SIZE = 10;
 
   for (let i = 0; i < records.length; i += CHUNK_SIZE) {
     const chunk = records.slice(i, i + CHUNK_SIZE);

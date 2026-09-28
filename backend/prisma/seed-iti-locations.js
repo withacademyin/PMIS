@@ -87,7 +87,7 @@ async function seedLocations() {
   console.log(`Checking ${itis.length} ITIs for location coordinates...`);
 
   let updated = 0;
-  const CHUNK_SIZE = 50;
+  const CHUNK_SIZE = 15;
 
   for (let i = 0; i < itis.length; i += CHUNK_SIZE) {
     const chunk = itis.slice(i, i + CHUNK_SIZE);
