@@ -144,12 +144,6 @@ function Hero() {
               I&apos;m a Nodal Officer
               <ArrowRight className="w-4 h-4" />
             </Link>
-            <Link
-              href="/#how-it-works"
-              className="text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors text-center sm:text-left px-2 py-3"
-            >
-              See how it works
-            </Link>
           </motion.div>
 
           {/* Trust stats */}

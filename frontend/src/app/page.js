@@ -4,25 +4,17 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import { 
-  ArrowRight, 
-  Building2, 
-  GraduationCap, 
-  CheckCircle2, 
   ShieldCheck, 
   MapPin, 
-  Sparkles, 
   Phone, 
   Mail, 
-  Clock, 
   Send, 
-  Check, 
-  UserCheck 
+  Check 
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { WebGLBackground } from '@/components/ui/webgl-background';
 import { Hero } from '@/components/ui/animated-hero';
-import { Component as Testimonials } from '@/components/ui/marquee-card';
 import { Logo } from '@/components/ui/logo';
 
 function ContactForm() {
@@ -211,111 +203,6 @@ export default function LandingPage() {
           <div className="w-full min-h-[calc(100vh-80px)] flex items-center justify-center overflow-hidden">
             <Hero />
           </div>
-          <div className="w-full py-20 pb-28 flex flex-col items-center justify-center overflow-hidden border-b border-slate-100">
-            <h2 className="text-3xl font-bold text-slate-900 mb-4 text-center px-4">Trusted by Workers and Nodal Officers</h2>
-            <p className="text-slate-500 text-center mb-12 max-w-2xl mx-auto px-4">See how ITIPortal is transforming the ITI hiring process with deep profile matching and spatial search.</p>
-            <div className="w-full">
-              <Testimonials />
-            </div>
-          </div>
-
-          {/* ── HOW IT WORKS SECTION ── */}
-          <section id="how-it-works" className="w-full py-24 bg-slate-50/70 border-b border-slate-200 scroll-mt-20">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="text-center max-w-3xl mx-auto mb-16">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold uppercase tracking-wider mb-4">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  Simple 4-Step Process
-                </div>
-                <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-                  How ITIPortal Works for Workers
-                </h2>
-                <p className="mt-4 text-lg text-slate-600">
-                  From vocational trade certification to district-level deployment. Connect directly with Nodal Officers seeking certified talent in your area.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                {/* Step 1 */}
-                <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative flex flex-col">
-                  <div className="w-12 h-12 rounded-xl bg-emerald-100/70 text-emerald-700 flex items-center justify-center mb-5 font-bold text-lg">
-                    1
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-900 mb-2">Create Trade Profile</h3>
-                  <p className="text-slate-600 text-sm leading-relaxed mb-4 flex-1">
-                    Sign up with your mobile number or email, pick your trade (Electrician, Fitter, Welder, COPA, Turner), and add your certified skills.
-                  </p>
-                  <div className="text-xs font-medium text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-md inline-flex items-center gap-1.5 w-fit">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Fast 2-min onboarding
-                  </div>
-                </div>
-
-                {/* Step 2 */}
-                <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative flex flex-col">
-                  <div className="w-12 h-12 rounded-xl bg-blue-100/70 text-blue-700 flex items-center justify-center mb-5 font-bold text-lg">
-                    2
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-900 mb-2">Verify ITI Institute</h3>
-                  <p className="text-slate-600 text-sm leading-relaxed mb-4 flex-1">
-                    Link your accredited Government or Private ITI institute from our directory of 1,500+ verified institutes across Uttar Pradesh.
-                  </p>
-                  <div className="text-xs font-medium text-blue-700 bg-blue-50 px-3 py-1.5 rounded-md inline-flex items-center gap-1.5 w-fit">
-                    <ShieldCheck className="w-3.5 h-3.5" /> NCVT / SCVT Verified
-                  </div>
-                </div>
-
-                {/* Step 3 */}
-                <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative flex flex-col">
-                  <div className="w-12 h-12 rounded-xl bg-amber-100/70 text-amber-700 flex items-center justify-center mb-5 font-bold text-lg">
-                    3
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-900 mb-2">50 km Spatial Match</h3>
-                  <p className="text-slate-600 text-sm leading-relaxed mb-4 flex-1">
-                    District Nodal Officers run localized radius searches to find candidates matching exact technical skills within 50 km of project hubs.
-                  </p>
-                  <div className="text-xs font-medium text-amber-700 bg-amber-50 px-3 py-1.5 rounded-md inline-flex items-center gap-1.5 w-fit">
-                    <MapPin className="w-3.5 h-3.5" /> High local visibility
-                  </div>
-                </div>
-
-                {/* Step 4 */}
-                <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow relative flex flex-col">
-                  <div className="w-12 h-12 rounded-xl bg-purple-100/70 text-purple-700 flex items-center justify-center mb-5 font-bold text-lg">
-                    4
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-900 mb-2">Direct Placement</h3>
-                  <p className="text-slate-600 text-sm leading-relaxed mb-4 flex-1">
-                    Receive verified apprenticeship and employment offers directly with no intermediaries or platform commission charges.
-                  </p>
-                  <div className="text-xs font-medium text-purple-700 bg-purple-50 px-3 py-1.5 rounded-md inline-flex items-center gap-1.5 w-fit">
-                    <Sparkles className="w-3.5 h-3.5" /> 100% Free for workers
-                  </div>
-                </div>
-              </div>
-
-              {/* Call to action bar */}
-              <div className="mt-14 bg-white rounded-2xl p-8 border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
-                <div>
-                  <h4 className="text-xl font-bold text-slate-900">Ready to boost your career opportunities?</h4>
-                  <p className="text-slate-600 text-sm mt-1">Join thousands of certified ITI technicians already connected to district projects.</p>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <Link
-                    href="/auth/signup?role=worker"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors shadow-sm"
-                  >
-                    Register as Worker <ArrowRight className="w-4 h-4" />
-                  </Link>
-                  <Link
-                    href="/auth/signup?role=officer"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold transition-colors shadow-sm"
-                  >
-                    Officer Sign Up
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </section>
 
           {/* ── CONTACT US SECTION ── */}
           <section id="contact" className="w-full py-24 bg-white scroll-mt-20">
@@ -406,8 +293,7 @@ export default function LandingPage() {
             <div>
               <h3 className="font-semibold text-slate-900 mb-4">Platform</h3>
               <ul className="space-y-3 text-sm text-slate-500">
-                <li><a href="/#how-it-works" className="hover:text-emerald-600 transition-colors">How It Works</a></li>
-                <li><a href="/#how-it-works" className="hover:text-emerald-600 transition-colors">Spatial Matching (50km)</a></li>
+                <li><a href="/dashboard/officer" className="hover:text-emerald-600 transition-colors">Opportunity Radar</a></li>
                 <li><a href="/#contact" className="hover:text-emerald-600 transition-colors">Helpdesk & Support</a></li>
               </ul>
             </div>
