@@ -107,16 +107,8 @@ export function RadarSidebar({
               className={`w-4 h-4 ${isNavActive('opportunities') ? 'text-amber-400' : 'text-slate-600 group-hover:text-slate-600'
                 }`}
             />
-            <span> Opportunities</span>
+            <span>Opportunities</span>
           </div>
-          <span
-            className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${isNavActive('opportunities')
-              ? 'bg-slate-800 text-amber-300'
-              : 'bg-slate-100 text-slate-600'
-              }`}
-          >
-            {kpiMetrics?.openOpportunities || 52}
-          </span>
         </button>
 
         {/* 3. Institutions */}
@@ -135,14 +127,6 @@ export function RadarSidebar({
             />
             <span>Institutions</span>
           </div>
-          <span
-            className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${isNavActive('institutions')
-              ? 'bg-slate-800 text-blue-300'
-              : 'bg-slate-100 text-slate-600'
-              }`}
-          >
-            {institutionsCount ?? 48}
-          </span>
         </button>
 
         {/* 4. Mobilisation (with Expandable Sub-items) */}
@@ -220,16 +204,8 @@ export function RadarSidebar({
               className={`w-4 h-4 ${isNavActive('weekly-plan') ? 'text-emerald-400' : 'text-slate-600 group-hover:text-slate-600'
                 }`}
             />
-            <span> Weekly Action Plan</span>
+            <span>Weekly Action Plan</span>
           </div>
-          <span
-            className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${isNavActive('weekly-plan')
-              ? 'bg-amber-400 text-slate-950'
-              : 'bg-amber-100 text-amber-800'
-              }`}
-          >
-            3 due
-          </span>
         </button>
 
         {/* 6. Outcomes */}
