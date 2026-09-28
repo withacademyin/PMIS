@@ -208,7 +208,7 @@ export default function LandingPage() {
         <Navbar />
         
         <main className="flex-1 flex flex-col w-full">
-          <div className="w-full min-h-[calc(100vh-80px)] px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+          <div className="w-full min-h-[calc(100vh-80px)] flex items-center justify-center overflow-hidden">
             <Hero />
           </div>
           <div className="w-full py-20 pb-28 flex flex-col items-center justify-center overflow-hidden border-b border-slate-100">

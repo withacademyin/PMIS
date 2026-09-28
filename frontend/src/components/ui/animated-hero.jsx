@@ -66,8 +66,8 @@ function Hero() {
   }, [titleNumber, trades]);
 
   return (
-    <section className="relative w-full z-20">
-      <div className="max-w-6xl mx-auto px-6 py-16 lg:py-24 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center relative z-20">
+    <section className="relative w-full z-20 overflow-hidden">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 lg:py-24 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center relative z-20">
 
         {/* ─── Left Column ─── */}
         <div className="lg:col-span-6 space-y-7 text-left">
@@ -174,8 +174,8 @@ function Hero() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="lg:col-span-6 w-full flex justify-center mt-12 lg:mt-0"
         >
-          <div className="relative w-full max-w-lg">
-            <div className="absolute -inset-4 bg-indigo-100/50 blur-2xl rounded-full" />
+          <div className="relative w-full max-w-lg overflow-hidden">
+            <div className="absolute inset-0 -m-4 bg-indigo-100/50 blur-2xl rounded-full" />
 
             <div className="relative rounded-2xl border border-slate-200 shadow-xl shadow-slate-200/60 bg-white overflow-hidden">
               {/* Card header */}
