@@ -176,7 +176,7 @@ export function RadarSidebar({
                   isMobilisationActive ? 'text-rose-600' : 'text-slate-600 group-hover:text-slate-600'
                 }`}
               />
-              <span>📢 Mobilisation</span>
+              <span>📢 Events &amp; Camps</span>
             </div>
             {mobilisationOpen ? (
               <ChevronDown className="w-3.5 h-3.5 text-slate-600" />
