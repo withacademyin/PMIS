@@ -65,7 +65,7 @@ export default function RadarMethodology() {
               Score = (Matching Trades / Required Trades) * 100
             </div>
             <p>
-              In simple words: An institution scores higher if they teach the exact trades (like Fitter or Electrician) required by the job opportunity. Only institutions with a > 0 score are shown in the catchment.
+              In simple words: An institution scores higher if they teach the exact trades (like Fitter or Electrician) required by the job opportunity. Only institutions with a &gt; 0 score are shown in the catchment.
             </p>
           </div>
         </div>
