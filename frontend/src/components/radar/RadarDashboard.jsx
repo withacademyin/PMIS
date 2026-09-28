@@ -244,7 +244,7 @@ export function RadarDashboard({
 
         {/* Card 3: Openings At Risk */}
         <div
-          onClick={() => onNavigateToNav?.('opportunities')}
+          onClick={() => onNavigateToNav?.('opportunities', { risk: 'AT_RISK' })}
           className="bg-white p-5 rounded-2xl border border-amber-200 shadow-xs hover:border-amber-300 transition-all cursor-pointer group bg-gradient-to-br from-white to-amber-50/20"
         >
           <div className="flex items-center justify-between text-amber-600 mb-2">
