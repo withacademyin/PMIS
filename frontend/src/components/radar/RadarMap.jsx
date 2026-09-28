@@ -463,18 +463,10 @@ export function RadarMap({
             ))}
           </div>
 
-          {/* Tile Layer Style */}
-          <select
-            value={mapStyle}
-            onChange={(e) => setMapStyle(e.target.value)}
-            className="py-1 px-2 rounded-md border border-slate-200 bg-white text-xs font-semibold text-slate-700 shadow-2xs"
-          >
-            <option value="voyager">CartoDB Voyager (Verified Key)</option>
-            <option value="positron">CartoDB Positron (Light)</option>
-            <option value="darkMatter">CartoDB Dark Matter</option>
-            <option value="osm">OpenStreetMap Standard</option>
-            <option value="satellite">Satellite View</option>
-          </select>
+          {/* Tile Layer Style (Read-only) */}
+          <div className="py-1 px-2 rounded-md border border-slate-200 bg-white text-xs font-semibold text-slate-700 shadow-2xs">
+            CartoDB Voyager (Verified Key)
+          </div>
 
           {/* Full Screen Toggle */}
           <button
