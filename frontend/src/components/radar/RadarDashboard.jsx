@@ -46,6 +46,16 @@ export function RadarDashboard({
 
   const filteredOpportunities = opportunities.filter(op => op.district === selectedDistrict);
 
+  // Dynamically compute KPI metrics based on ALL opportunities (state-wide)
+  const dynamicKPIs = {
+    openOpportunities: opportunities.length,
+    highRisk: opportunities.filter(op => op.risk === 'HIGH').length,
+    openingsAtRisk: opportunities
+      .filter(op => op.risk === 'HIGH' || op.risk === 'MEDIUM')
+      .reduce((sum, op) => sum + (op.openings || 0), 0),
+    closingNext7Days: opportunities.filter(op => op.daysLeft <= 7).length,
+  };
+
   // Dynamically compute priority actions based on filtered opportunities
   const dynamicPriorityActions = filteredOpportunities
     .filter(op => op.risk === 'HIGH' || op.risk === 'MEDIUM')
@@ -197,7 +207,7 @@ export function RadarDashboard({
             </div>
           </div>
           <div className="text-3xl font-black text-slate-900 tracking-tight">
-            {KPI_METRICS.openOpportunities}
+            {dynamicKPIs.openOpportunities}
           </div>
           <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
             <span>All active postings</span>
@@ -221,7 +231,7 @@ export function RadarDashboard({
             </div>
           </div>
           <div className="text-3xl font-black text-rose-700 tracking-tight flex items-center gap-2">
-            {KPI_METRICS.highRisk}
+            {dynamicKPIs.highRisk}
             <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
           </div>
           <div className="mt-2 flex items-center justify-between text-xs text-rose-700 font-medium">
@@ -246,7 +256,7 @@ export function RadarDashboard({
             </div>
           </div>
           <div className="text-3xl font-black text-slate-900 tracking-tight">
-            {KPI_METRICS.openingsAtRisk}
+            {dynamicKPIs.openingsAtRisk}
           </div>
           <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
             <span>Across High + Med risk</span>
@@ -270,7 +280,7 @@ export function RadarDashboard({
             </div>
           </div>
           <div className="text-3xl font-black text-orange-600 tracking-tight">
-            {KPI_METRICS.closingNext7Days}
+            {dynamicKPIs.closingNext7Days}
           </div>
           <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
             <span>Critical window closing</span>
