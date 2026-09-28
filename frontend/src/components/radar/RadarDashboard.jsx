@@ -170,10 +170,10 @@ export function RadarDashboard({
           </div>
           <div className="leading-snug">
             <span className="font-black text-slate-900 uppercase tracking-wide text-[11px] block">
-              DNO Strategic Pulse • {selectedDistrict}
+              DNO Strategic Pulse • {globalDistrict === 'ALL' ? 'All Districts' : globalDistrict}
             </span>
             <span className="text-slate-600">
-              <strong className="text-rose-700">High-Risk postings</strong> are closing within 7 days. Mobilising local ITIs and Polytechnics in {selectedDistrict} is highly recommended.
+              <strong className="text-rose-700">High-Risk postings</strong> are closing within 7 days. Mobilising local ITIs and Polytechnics in {globalDistrict === 'ALL' ? 'the selected districts' : globalDistrict} is highly recommended.
             </span>
           </div>
         </div>
