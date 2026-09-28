@@ -24,7 +24,7 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200/80 bg-white/80 backdrop-blur-md">
-      <div className="w-full max-w-7xl mx-auto px-6 h-25 flex items-center justify-between">
+      <div className="w-full max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
 
         {/* ── Left: Brand ── */}
         <div className="flex items-center gap-3">
