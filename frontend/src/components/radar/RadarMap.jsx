@@ -335,7 +335,6 @@ export function RadarMap({
     opportunities,
     institutions,
     selectedCatchment,
-    selectedCatchmentRadius,
     selectedRiskFilter,
     isMapReady,
   ]);
