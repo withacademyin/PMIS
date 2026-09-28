@@ -16,9 +16,9 @@ import {
   Sparkles,
   CalendarCheck
 } from 'lucide-react';
-import { INSTITUTIONS, OPPORTUNITIES } from '@/data/radarData';
+import { INSTITUTIONS } from '@/data/radarData';
 
-export function RadarInstitutions({ onPlanCamp, onSelectOpportunity }) {
+export function RadarInstitutions({ opportunities, onPlanCamp, onSelectOpportunity }) {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('ALL'); // ALL, ITI, Polytechnic, College
   const [selectedInstitution, setSelectedInstitution] = useState(INSTITUTIONS[0]);
@@ -36,7 +36,7 @@ export function RadarInstitutions({ onPlanCamp, onSelectOpportunity }) {
   // Calculate matching open opportunities for selected institution
   const getMatchingOpportunities = (inst) => {
     if (!inst) return [];
-    return OPPORTUNITIES.filter((op) => {
+    return (opportunities || []).filter((op) => {
       return inst.programmes.some((p) => {
         const t = p.trade.toLowerCase();
         const q = op.qualification.toLowerCase();

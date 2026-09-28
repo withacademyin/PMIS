@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { api } from '@/lib/api';
 import RadarSidebar from '@/components/radar/RadarSidebar';
 import RadarDashboard from '@/components/radar/RadarDashboard';
 import RadarOpportunities from '@/components/radar/RadarOpportunities';
@@ -13,7 +14,6 @@ import RadarOutcomes from '@/components/radar/RadarOutcomes';
 import RadarProfile from '@/components/radar/RadarProfile';
 import OpportunityDetailModal from '@/components/radar/OpportunityDetailModal';
 import {
-  OPPORTUNITIES,
   INSTITUTIONS,
   PRIORITY_ACTIONS,
   KPI_METRICS,
@@ -32,6 +32,67 @@ export function RadarView() {
 
   // Preselected opportunity for Camp Planner or Bulletin Generator
   const [preselectedOpp, setPreselectedOpp] = useState(null);
+
+  const [liveOpportunities, setLiveOpportunities] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadOpportunities = async () => {
+      try {
+        setIsLoading(true);
+        const res = await api.getRequirements();
+        if (res.success && res.data) {
+          const mapped = res.data.map((req) => {
+            // Parse jdText for company and stipend
+            const jdLines = (req.jdText || '').split('\n');
+            const companyLine = jdLines.find(l => l.startsWith('Company:')) || 'Company: Unknown';
+            const stipendLine = jdLines.find(l => l.startsWith('Stipend:')) || 'Stipend: N/A';
+            const districtLine = jdLines.find(l => l.startsWith('District:')) || 'District: Gorakhpur';
+            const latLine = jdLines.find(l => l.startsWith('Lat:')) || 'Lat: 26.75';
+            const lngLine = jdLines.find(l => l.startsWith('Lng:')) || 'Lng: 83.38';
+            const riskLine = jdLines.find(l => l.startsWith('Risk:')) || 'Risk: MEDIUM';
+            
+            const company = companyLine.replace('Company:', '').trim();
+            const stipend = stipendLine.replace('Stipend:', '').trim();
+            const district = districtLine.replace('District:', '').trim();
+            const lat = parseFloat(latLine.replace('Lat:', '').trim());
+            const lng = parseFloat(lngLine.replace('Lng:', '').trim());
+            const risk = riskLine.replace('Risk:', '').trim();
+            
+            return {
+              id: req.id,
+              roleTitle: req.title,
+              company: company,
+              sector: 'General',
+              qualification: `ITI - ${req.requiredTrade}`,
+              openings: Math.floor(Math.random() * 15) + 5, // mock openings since not in schema
+              applications: Math.floor(Math.random() * 5),
+              daysLeft: Math.floor(Math.random() * 30) + 1,
+              closingDate: 'TBD',
+              openingDate: new Date(req.createdAt).toLocaleDateString(),
+              duration: '12 Months',
+              monthlyStipend: stipend,
+              address: district,
+              district: district,
+              coordinates: { lat, lng },
+              risk: risk,
+              riskReason: 'Demo generated risk',
+              recommendedAction: null,
+              catchmentInstitutions: {}
+            };
+          });
+          setLiveOpportunities(mapped);
+        }
+      } catch (error) {
+        console.error('Failed to load opportunities:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    if (user) {
+      loadOpportunities();
+    }
+  }, [user]);
 
   // Active officer profile data
   const officerProfile = {
@@ -122,7 +183,7 @@ export function RadarView() {
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
           {activeNav === 'dashboard' && (
             <RadarDashboard
-              opportunities={OPPORTUNITIES}
+              opportunities={liveOpportunities}
               institutions={INSTITUTIONS}
               priorityActions={PRIORITY_ACTIONS}
               onSelectOpportunity={handleOpenOpportunityModal}
@@ -134,6 +195,7 @@ export function RadarView() {
 
           {activeNav === 'opportunities' && (
             <RadarOpportunities
+              opportunities={liveOpportunities}
               onSelectOpportunity={handleOpenOpportunityModal}
               onPlanCamp={handlePlanCamp}
               onShareBulletin={handleShareBulletin}
@@ -142,6 +204,7 @@ export function RadarView() {
 
           {activeNav === 'institutions' && (
             <RadarInstitutions
+              opportunities={liveOpportunities}
               onPlanCamp={handlePlanCamp}
               onSelectOpportunity={handleOpenOpportunityModal}
             />
@@ -149,7 +212,7 @@ export function RadarView() {
 
           {activeNav === 'bulletins' && (
             <RadarBulletins
-              opportunities={OPPORTUNITIES}
+              opportunities={liveOpportunities}
               selectedOppId={preselectedOpp?.id}
               onSelectOpportunity={handleOpenOpportunityModal}
             />
@@ -157,7 +220,7 @@ export function RadarView() {
 
           {activeNav === 'camp-plans' && (
             <RadarCampPlans
-              opportunities={OPPORTUNITIES}
+              opportunities={liveOpportunities}
               institutions={INSTITUTIONS}
               preselectedOpportunity={preselectedOpp}
               nodalOfficer={officerProfile}
