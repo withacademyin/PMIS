@@ -67,6 +67,14 @@ export function RadarBulletins({ opportunities = [], globalDistrict, setGlobalDi
     window.print();
   };
 
+  if (!activeOpp) {
+    return (
+      <div className="flex items-center justify-center h-64 bg-slate-50 border border-slate-200 rounded-2xl text-slate-500 text-sm font-medium">
+        No active opportunities available.
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* ── Top Bar ── */}
