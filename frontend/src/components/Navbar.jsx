@@ -77,25 +77,6 @@ export function Navbar() {
           ) : (
             !loading && (
               <div className="flex items-center gap-1">
-                <Link
-                  href="/dashboard/officer"
-                  className="px-3.5 py-2 rounded-md bg-emerald-50 text-emerald-800 font-semibold hover:bg-emerald-100 transition-colors flex items-center gap-1.5 text-xs border border-emerald-200"
-                >
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  PMIS Opportunity Radar
-                </Link>
-                <Link
-                  href="/auth/signup?role=worker"
-                  className="px-3.5 py-2 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors text-slate-600"
-                >
-                  For Workers
-                </Link>
-                <Link
-                  href="/#contact"
-                  className="px-3.5 py-2 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors text-slate-600"
-                >
-                  Contact Us
-                </Link>
               </div>
             )
           )}
