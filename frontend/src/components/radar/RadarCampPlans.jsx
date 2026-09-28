@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Calendar,
   Clock,
@@ -91,7 +91,7 @@ export function RadarCampPlans({
             </span>
             <div>
               <h2 className="text-lg font-bold text-slate-900 tracking-tight">
-                Mobilisation Camp Planner
+                 Camp Planner
               </h2>
               <p className="text-xs text-slate-500">
                 Organize on-campus recruitment and PMIS registration drives at high-match institutions.
@@ -153,7 +153,7 @@ export function RadarCampPlans({
                   if (op) {
                     setFormData((prev) => ({
                       ...prev,
-                      campName: `${op.roleTitle} Mobilisation Camp`,
+                      campName: `${op.roleTitle} Recruitment Camp`,
                     }));
                   }
                 }}
