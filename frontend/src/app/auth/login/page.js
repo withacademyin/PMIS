@@ -14,8 +14,8 @@ import { WebGLBackground } from '@/components/ui/webgl-background';
 function LoginScreen() {
   const searchParams = useSearchParams();
   const { login, user, loading } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('officer@example.com');
+  const [password, setPassword] = useState('password123');
   const [errorMsg, setErrorMsg] = useState('');
   const router = useRouter();
 
@@ -118,14 +118,6 @@ function LoginScreen() {
             </button>
           </form>
 
-          <div style={{height:1,background:"#e5e7eb",width:"100%",margin:"1.25rem 0"}}/>
-
-          <button style={socialBtn} type="button">{GoogleIcon}Continue with Google</button>
-
-          <div style={{marginTop:"1.5rem",fontSize:"0.875rem",color:"#6b7280"}}>
-            Don't have an account?{" "}
-            <Link href="/auth/signup" style={{color:"#000",fontWeight:500}}>Sign Up</Link>
-          </div>
         </div>
       </div>
     </div>

@@ -133,15 +133,9 @@ export function Navbar() {
               <>
                 <Link
                   href="/auth/login"
-                  className="text-sm font-medium text-slate-600 hover:text-slate-900 px-4 py-2 transition-colors"
-                >
-                  Log In
-                </Link>
-                <Link
-                  href="/auth/signup"
                   className="text-sm font-medium bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-md transition-colors"
                 >
-                  Sign Up
+                  Log In
                 </Link>
               </>
             )
