@@ -107,12 +107,35 @@ export const getITIs = async (req, res) => {
       ...(limit ? { take: parseInt(limit, 10) } : {}),
     });
 
-    // Attach coordinates in batch
-    const itisWithCoords = await Promise.all(itis.map(attachCoordinates));
-    const itisWithContacts = itisWithCoords.map((item) => ({
-      ...item,
-      contacts: generateITIContacts(item),
-    }));
+    // Attach coordinates in a single batch query
+    const coordsMap = new Map();
+    if (itis.length > 0) {
+      try {
+        const ids = itis.map((i) => i.id);
+        const coords = await prisma.$queryRawUnsafe(
+          `SELECT id, ST_Y(location::geometry) as lat, ST_X(location::geometry) as lng FROM "ITI" WHERE id = ANY($1::text[]) AND location IS NOT NULL;`,
+          ids
+        );
+        if (Array.isArray(coords)) {
+          coords.forEach((c) => coordsMap.set(c.id, { lat: c.lat, lng: c.lng }));
+        }
+      } catch (coordsErr) {
+        console.warn('Batch coordinates query failed, falling back:', coordsErr.message);
+      }
+    }
+
+    const itisWithContacts = itis.map((item) => {
+      const coord = coordsMap.get(item.id);
+      const enriched = {
+        ...item,
+        lat: coord?.lat ?? null,
+        lng: coord?.lng ?? null,
+      };
+      return {
+        ...enriched,
+        contacts: generateITIContacts(enriched),
+      };
+    });
 
     return res.json({ success: true, itis: itisWithContacts, count: itis.length });
   } catch (err) {
