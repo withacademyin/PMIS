@@ -35,51 +35,7 @@ export function Navbar() {
 
         {/* ── Center: Navigation ── */}
         <nav className="hidden md:flex items-center gap-2 text-sm font-medium text-slate-500">
-          {!loading && user ? (
-            <>
-              {/* Dashboard link — correct for every role */}
-              <Link
-                href={getDashboardPath(role)}
-                className="px-4 py-2 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors"
-              >
-                Dashboard
-              </Link>
-
-              {/* Role-specific links */}
-              {(role === 'worker' || role === 'student') && (
-                <Link
-                  href="/dashboard/worker"
-                  className="px-4 py-2 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors"
-                >
-                  My Profile & Trade
-                </Link>
-              )}
-              {(role === 'officer' || role === 'recruiter') && (
-                <>
-                  <Link
-                    href="/dashboard/officer"
-                    className="px-4 py-2 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors flex items-center gap-1.5"
-                  >
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    Opportunity Radar
-                  </Link>
-                </>
-              )}
-              {role === 'admin' && (
-                <Link
-                  href="/dashboard/admin"
-                  className="px-4 py-2 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors"
-                >
-                  Admin Verification
-                </Link>
-              )}
-            </>
-          ) : (
-            !loading && (
-              <div className="flex items-center gap-1">
-              </div>
-            )
-          )}
+          {/* Navigation links have been removed per user request */}
         </nav>
 
         {/* ── Right: User Actions ── */}
