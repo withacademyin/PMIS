@@ -329,9 +329,9 @@ export function RadarCampPlans({
               <div className="grid grid-cols-3 gap-2 py-2 border-b border-slate-100">
                 <span className="font-bold text-slate-500">Linked Opportunity:</span>
                 <span className="col-span-2">
-                  <strong className="text-slate-900">{activeOpp.roleTitle}</strong> ({activeOpp.company})
+                  <strong className="text-slate-900">{activeOpp?.roleTitle || 'N/A'}</strong> ({activeOpp?.company || 'N/A'})
                   <span className="block text-[11px] text-slate-500">
-                    {activeOpp.openings} Openings • Qualification: {activeOpp.qualification}
+                    {activeOpp?.openings || 0} Openings • Qualification: {activeOpp?.qualification || 'N/A'}
                   </span>
                 </span>
               </div>
@@ -352,7 +352,7 @@ export function RadarCampPlans({
               <ul className="space-y-1.5 text-slate-600 list-disc list-inside">
                 <li>
                   Institution Principal to notify all final-year & passout batches in{' '}
-                  <strong className="text-slate-900">{activeOpp.qualification}</strong>.
+                  <strong className="text-slate-900">{activeOpp?.qualification || 'N/A'}</strong>.
                 </li>
                 <li>
                   Setup 4 internet-enabled verification kiosks for spot PMIS registration assistance.
