@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 
 const FilterContext = createContext(null);
 
@@ -25,13 +25,16 @@ export function FilterProvider({ children }) {
   const [globalDistrict, setGlobalDistrict] = useState('ALL');
   const [availableDistricts, setAvailableDistricts] = useState(DEFAULT_DISTRICTS);
 
-  const updateDistricts = (newDistricts) => {
+  const updateDistricts = useCallback((newDistricts) => {
     if (!Array.isArray(newDistricts)) return;
     setAvailableDistricts((prev) => {
       const merged = Array.from(new Set([...prev, ...newDistricts])).filter(Boolean).sort();
+      if (merged.length === prev.length && merged.every((val, index) => val === prev[index])) {
+        return prev;
+      }
       return merged;
     });
-  };
+  }, []);
 
   return (
     <FilterContext.Provider
