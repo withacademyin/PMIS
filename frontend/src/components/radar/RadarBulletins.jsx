@@ -88,12 +88,12 @@ export function RadarBulletins({ opportunities = [], globalDistrict, setGlobalDi
         </div>
 
         {/* Controls */}
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-nowrap overflow-x-auto items-center gap-2.5 pb-2 sm:pb-0 scrollbar-hide">
           {/* District Filter */}
           <select
             value={globalDistrict}
             onChange={(e) => setGlobalDistrict(e.target.value)}
-            className="text-xs font-semibold py-2 px-3 rounded-lg border border-slate-200 bg-emerald-50 text-emerald-800 focus:ring-1 focus:ring-emerald-600"
+            className="text-xs font-semibold py-2 px-3 rounded-lg border border-slate-200 bg-emerald-50 text-emerald-800 focus:ring-1 focus:ring-emerald-600 shrink-0"
           >
             <option value="ALL">All Districts</option>
             {uniqueDistricts?.map((d) => (
@@ -107,7 +107,7 @@ export function RadarBulletins({ opportunities = [], globalDistrict, setGlobalDi
           <select
             value={currentId}
             onChange={(e) => setCurrentId(e.target.value)}
-            className="text-xs font-semibold py-2 px-3 rounded-lg border border-slate-200 bg-white text-slate-800 shadow-2xs focus:ring-1 focus:ring-slate-900 max-w-[200px] truncate"
+            className="text-xs font-semibold py-2 px-3 rounded-lg border border-slate-200 bg-white text-slate-800 shadow-2xs focus:ring-1 focus:ring-slate-900 max-w-[200px] truncate shrink-0"
           >
             {filteredOpportunities.map((o) => (
               <option key={o.id} value={o.id}>
@@ -117,7 +117,7 @@ export function RadarBulletins({ opportunities = [], globalDistrict, setGlobalDi
           </select>
 
           {/* Bilingual Switcher */}
-          <div className="inline-flex rounded-lg bg-slate-100 p-0.5 border border-slate-200">
+          <div className="inline-flex rounded-lg bg-slate-100 p-0.5 border border-slate-200 shrink-0">
             <button
               type="button"
               onClick={() => setLanguage('EN')}
@@ -146,7 +146,7 @@ export function RadarBulletins({ opportunities = [], globalDistrict, setGlobalDi
           <button
             type="button"
             onClick={handleCopyWhatsApp}
-            className="inline-flex items-center gap-1.5 py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs transition-colors"
+            className="inline-flex items-center gap-1.5 py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs transition-colors shrink-0"
           >
             {copied ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
             <span>{copied ? 'Copied Text!' : 'Copy for WhatsApp'}</span>
@@ -156,7 +156,7 @@ export function RadarBulletins({ opportunities = [], globalDistrict, setGlobalDi
           <button
             type="button"
             onClick={handlePrint}
-            className="inline-flex items-center gap-1.5 py-2 px-3 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition-colors"
+            className="inline-flex items-center gap-1.5 py-2 px-3 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition-colors shrink-0"
           >
             <Printer className="w-3.5 h-3.5" />
             <span>Print A4</span>
@@ -173,10 +173,10 @@ export function RadarBulletins({ opportunities = [], globalDistrict, setGlobalDi
           {/* Official Emblem Banner */}
           <div className="bg-slate-900 text-white p-6 text-center space-y-1 relative">
             <div className="w-12 h-12 rounded-full bg-white/10 mx-auto flex items-center justify-center mb-2 border border-white/20">
-              <span className="text-xl">🇮🇳</span>
+              <span className="text-xl"></span>
             </div>
             <p className="text-[11px] font-bold tracking-[0.2em] text-amber-300 uppercase">
-              {language === 'HI' ? 'भारत सरकार • कौशल विकास एवं उद्यमशीलता' : 'GOVERNMENT OF INDIA • PMIS CELL'}
+              {language === 'HI' ? 'आधिकारिक कार्यक्रम • पीएमआईएस सेल' : 'OFFICIAL PROGRAM • PMIS CELL'}
             </p>
             <h1 className="text-xl md:text-2xl font-black uppercase tracking-tight text-white">
               {language === 'HI'
