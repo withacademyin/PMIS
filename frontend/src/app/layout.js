@@ -3,7 +3,7 @@ import 'leaflet/dist/leaflet.css';
 import { Providers } from '@/components/Providers';
 
 export const metadata = {
-  title: 'Hiring Portal —  Find Internship ',
+  title: 'Opportunity Nexus',
   description: 'AI-assisted technical screening and deterministic skill matching portal for Learners, Recruiters, and Academic Admins.',
 };
 

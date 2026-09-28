@@ -38,6 +38,9 @@ export function Navbar() {
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center gap-2.5">
             <Logo className="h-10 w-auto object-contain" />
+            <span className="font-bold text-lg text-slate-800 tracking-tight hidden sm:block">
+              Opportunity Nexus
+            </span>
           </Link>
         </div>
 
