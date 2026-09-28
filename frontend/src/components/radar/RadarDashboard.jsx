@@ -138,31 +138,7 @@ export function RadarDashboard({
           </div>
         </div>
 
-        {/* Refresh & Print Controls */}
-        <div className="flex items-center gap-2.5 shrink-0">
-          <div className="text-right text-[11px] text-slate-500 hidden sm:block">
-            <span>Last Updated:</span>
-            <span className="font-medium text-slate-700 block">{lastRefreshed}</span>
-          </div>
 
-          <button
-            type="button"
-            onClick={handleRefresh}
-            className="p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors shadow-2xs"
-            title="Sync PMIS & Institution Master Data"
-          >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-emerald-600' : ''}`} />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="inline-flex items-center gap-1.5 py-2 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition-colors"
-          >
-            <Printer className="w-3.5 h-3.5" />
-            <span>Print Report</span>
-          </button>
-        </div>
       </div>
 
       {/* ── Smart Executive Pulse Summary ── */}
