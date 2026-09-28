@@ -16,7 +16,8 @@ import {
   FileCheck,
   CalendarCheck,
   LogOut,
-  UserCheck
+  UserCheck,
+  Calculator
 } from 'lucide-react';
 
 export function RadarSidebar({
@@ -253,6 +254,22 @@ export function RadarSidebar({
               }`}
           />
           <span> Profile / Settings</span>
+        </button>
+
+        {/* 8. Methodology */}
+        <button
+          type="button"
+          onClick={() => handleNavClick('methodology')}
+          className={`w-full group flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-all ${isNavActive('methodology')
+            ? 'bg-slate-900 text-white shadow-sm'
+            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+        >
+          <Calculator
+            className={`w-4 h-4 ${isNavActive('methodology') ? 'text-indigo-400' : 'text-slate-600 group-hover:text-slate-600'
+              }`}
+          />
+          <span> Methodology</span>
         </button>
       </div>
 

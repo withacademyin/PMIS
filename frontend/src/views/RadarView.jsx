@@ -12,6 +12,7 @@ import RadarCampPlans from '@/components/radar/RadarCampPlans';
 import RadarWeeklyPlan from '@/components/radar/RadarWeeklyPlan';
 import RadarOutcomes from '@/components/radar/RadarOutcomes';
 import RadarProfile from '@/components/radar/RadarProfile';
+import RadarMethodology from '@/components/radar/RadarMethodology';
 import OpportunityDetailModal from '@/components/radar/OpportunityDetailModal';
 import {
   INSTITUTIONS,
@@ -363,6 +364,8 @@ export function RadarView() {
           {activeNav === 'outcomes' && <RadarOutcomes />}
 
           {activeNav === 'settings' && <RadarProfile officerProfile={officerProfile} />}
+
+          {activeNav === 'methodology' && <RadarMethodology />}
         </main>
       </div>
 
