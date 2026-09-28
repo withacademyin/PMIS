@@ -1,8 +1,9 @@
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Seeding 52 Work Requirements (Opportunities)...');
+  console.log('Seeding 84 Work Requirements (Opportunities across 6 districts)...');
 
   // Get the Gorakhpur Officer
   const officer = await prisma.user.findFirst({
@@ -27,7 +28,8 @@ async function main() {
     { name: 'Mathura', lat: 27.4924, lng: 77.6737 },
     { name: 'Firozabad', lat: 27.1590, lng: 78.3958 },
     { name: 'Aligarh', lat: 27.8974, lng: 78.0880 },
-    { name: 'Hathras', lat: 27.5971, lng: 78.0583 }
+    { name: 'Hathras', lat: 27.5971, lng: 78.0583 },
+    { name: 'Gorakhpur', lat: 26.7606, lng: 83.3732 }
   ];
 
   const opportunities = [];
