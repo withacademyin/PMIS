@@ -15,7 +15,9 @@ import {
   Radio,
   ExternalLink,
   ChevronRight,
-  Filter
+  Filter,
+  Maximize,
+  Minimize
 } from 'lucide-react';
 
 export function RadarMap({
@@ -39,6 +41,38 @@ export function RadarMap({
   const [mapStyle, setMapStyle] = useState('voyager'); // voyager, osm, satellite
   const [currentView, setCurrentView] = useState('district'); // district or national
   const [isMapReady, setIsMapReady] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+
+  // Handle Fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullScreen(!!document.fullscreenElement);
+      if (mapInstanceRef.current) {
+        const fixSize = () => {
+          mapInstanceRef.current.invalidateSize();
+          window.dispatchEvent(new Event('resize'));
+        };
+        setTimeout(fixSize, 50);
+        setTimeout(fixSize, 200);
+        setTimeout(fixSize, 500);
+      }
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const toggleFullScreen = () => {
+    const mapWrapper = document.getElementById('radar-map-wrapper');
+    if (!document.fullscreenElement) {
+      if (mapWrapper?.requestFullscreen) {
+        mapWrapper.requestFullscreen().catch(err => console.error(err));
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
 
   // Catchment radii in meters: 30 min (~14km), 45 min (~22km), 60 min (~32km)
   const catchmentRadiusMeters = {
@@ -324,7 +358,13 @@ export function RadarMap({
   };
 
   return (
-    <div className="relative w-full rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+    <div 
+      id="radar-map-wrapper"
+      className={`relative w-full border border-slate-200 bg-white shadow-sm flex flex-col ${
+      isFullScreen 
+        ? '!rounded-none' 
+        : 'rounded-2xl overflow-hidden'
+    }`}>
       {/* ── Top Control Bar ── */}
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 border-b border-slate-100 bg-slate-50/70">
         <div className="flex flex-wrap items-center gap-3">
@@ -437,12 +477,26 @@ export function RadarMap({
             <option value="osm">OpenStreetMap Standard</option>
             <option value="satellite">Satellite View</option>
           </select>
+
+          {/* Full Screen Toggle */}
+          <button
+            type="button"
+            onClick={toggleFullScreen}
+            className="p-1.5 ml-1 rounded-md border border-slate-200 bg-white text-slate-500 hover:text-slate-900 hover:bg-slate-50 shadow-2xs transition-colors"
+            title={isFullScreen ? "Exit Full Screen" : "Full Screen"}
+          >
+            {isFullScreen ? (
+              <Minimize className="w-4 h-4" />
+            ) : (
+              <Maximize className="w-4 h-4" />
+            )}
+          </button>
         </div>
       </div>
 
       {/* ── Leaflet Container ── */}
-      <div className="relative w-full h-[520px]">
-        <div ref={mapContainerRef} className="w-full h-full z-10" />
+      <div className={`relative w-full ${isFullScreen ? 'flex-1 min-h-0 min-h-[520px]' : 'h-[520px]'}`}>
+        <div ref={mapContainerRef} className="absolute inset-0 z-10 bg-slate-50" />
 
         {/* ── Map Legend Overlay (Bottom Left) ── */}
         <div className="absolute bottom-4 left-4 z-20 bg-white/95 backdrop-blur-md rounded-xl p-3.5 border border-slate-200/90 shadow-md text-xs space-y-1.5 max-w-[240px]">

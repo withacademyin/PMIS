@@ -16,15 +16,14 @@ import {
   FileCheck,
   ChevronRight
 } from 'lucide-react';
-import { OPPORTUNITIES } from '@/data/radarData';
 
-export function RadarOpportunities({ onSelectOpportunity, onPlanCamp, onShareBulletin }) {
+export function RadarOpportunities({ opportunities, onSelectOpportunity, onPlanCamp, onShareBulletin }) {
   const [search, setSearch] = useState('');
   const [riskFilter, setRiskFilter] = useState('ALL');
   const [deadlineFilter, setDeadlineFilter] = useState('ALL'); // ALL, 7, 14, 30
 
   // Filter and sort opportunities (High -> Medium -> Low, then fewest days left)
-  const filteredOpportunities = OPPORTUNITIES.filter((op) => {
+  const filteredOpportunities = opportunities.filter((op) => {
     const matchesSearch =
       op.roleTitle.toLowerCase().includes(search.toLowerCase()) ||
       op.company.toLowerCase().includes(search.toLowerCase()) ||

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Sparkles,
   RefreshCw,
@@ -37,6 +37,39 @@ export function RadarDashboard({
   const [selectedCatchment, setSelectedCatchment] = useState('60');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState(KPI_METRICS.lastUpdated);
+  const uniqueDistricts = Array.from(new Set(opportunities.map(op => op.district))).filter(Boolean).sort();
+  useEffect(() => {
+    if (uniqueDistricts.length > 0 && !uniqueDistricts.includes(selectedDistrict)) {
+      setSelectedDistrict(uniqueDistricts[0]);
+    }
+  }, [uniqueDistricts, selectedDistrict]);
+
+  const filteredOpportunities = opportunities.filter(op => op.district === selectedDistrict);
+
+  // Dynamically compute priority actions based on filtered opportunities
+  const dynamicPriorityActions = filteredOpportunities
+    .filter(op => op.risk === 'HIGH' || op.risk === 'MEDIUM')
+    .sort((a, b) => {
+      const riskRank = { HIGH: 1, MEDIUM: 2, LOW: 3 };
+      if (riskRank[a.risk] !== riskRank[b.risk]) {
+        return riskRank[a.risk] - riskRank[b.risk];
+      }
+      return a.daysLeft - b.daysLeft;
+    })
+    .slice(0, 4)
+    .map(op => ({
+      postingId: op.id,
+      roleTitle: op.roleTitle,
+      company: op.company,
+      location: op.address,
+      openings: op.openings,
+      applications: op.applications,
+      daysLeft: op.daysLeft,
+      risk: op.risk,
+      recommendedActionTitle: op.risk === 'HIGH' ? 'Organise Job Camp' : 'Share Job Bulletin',
+      recommendedActionReason: op.risk === 'HIGH' ? 'Severe applicant deficit requires immediate on-ground mobilisation.' : 'Send targeted SMS to catchment ITI candidates.',
+      recommendedActionType: op.risk === 'HIGH' ? 'CAMP' : 'BULLETIN'
+    }));
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -77,11 +110,14 @@ export function RadarDashboard({
               onChange={(e) => setSelectedDistrict(e.target.value)}
               className="py-0.5 px-2 rounded-md bg-emerald-50 text-emerald-800 font-bold border border-emerald-200 text-xs focus:ring-1 focus:ring-emerald-600"
             >
-              {DISTRICT_LIST.map((d) => (
-                <option key={d.code} value={d.code}>
-                  {d.name} {d.code === 'GORAKHPUR' ? '(Assigned)' : ''}
+              {uniqueDistricts.map((d) => (
+                <option key={d} value={d}>
+                  {d}
                 </option>
               ))}
+              {uniqueDistricts.length === 0 && (
+                <option value="GORAKHPUR">Gorakhpur</option>
+              )}
             </select>
 
             <span className="text-slate-300">•</span>
@@ -128,10 +164,10 @@ export function RadarDashboard({
           </div>
           <div className="leading-snug">
             <span className="font-black text-slate-900 uppercase tracking-wide text-[11px] block">
-              DNO Strategic Pulse • Gorakhpur
+              DNO Strategic Pulse • {selectedDistrict}
             </span>
             <span className="text-slate-600">
-              <strong className="text-rose-700">12 High-Risk postings</strong> (87 vacancies) are closing within 7 days in the GIDA & Sahjanwa corridors. Mobilising <strong className="text-slate-900">Government ITI Gorakhpur</strong> and <strong className="text-slate-900">ITI Sahjanwa</strong> covers <strong className="text-emerald-700">82% of at-risk vacancies</strong>.
+              <strong className="text-rose-700">High-Risk postings</strong> are closing within 7 days. Mobilising local ITIs and Polytechnics in {selectedDistrict} is highly recommended.
             </span>
           </div>
         </div>
@@ -247,7 +283,7 @@ export function RadarDashboard({
 
       {/* ── 5.3 District Map (Plan.md Section 5.3) ── */}
       <RadarMap
-        opportunities={opportunities}
+        opportunities={filteredOpportunities}
         institutions={institutions}
         selectedCatchment={selectedCatchment}
         onSelectCatchment={setSelectedCatchment}
@@ -281,7 +317,7 @@ export function RadarDashboard({
 
         {/* Grid of Priority Action Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {priorityActions.map((item) => {
+          {dynamicPriorityActions.map((item) => {
             const isHigh = item.risk === 'HIGH';
 
             return (
@@ -355,7 +391,7 @@ export function RadarDashboard({
                   <button
                     type="button"
                     onClick={() => {
-                      const fullOpp = opportunities.find((o) => o.id === item.postingId);
+                      const fullOpp = filteredOpportunities.find((o) => o.id === item.postingId);
                       if (fullOpp) onSelectOpportunity?.(fullOpp);
                     }}
                     className="flex-1 py-2 px-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-colors"
@@ -367,7 +403,7 @@ export function RadarDashboard({
                     <button
                       type="button"
                       onClick={() => {
-                        const fullOpp = opportunities.find((o) => o.id === item.postingId);
+                        const fullOpp = filteredOpportunities.find((o) => o.id === item.postingId);
                         if (fullOpp) onPlanCamp?.(fullOpp);
                       }}
                       className="py-2 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-xs transition-colors"
@@ -380,7 +416,7 @@ export function RadarDashboard({
                     <button
                       type="button"
                       onClick={() => {
-                        const fullOpp = opportunities.find((o) => o.id === item.postingId);
+                        const fullOpp = filteredOpportunities.find((o) => o.id === item.postingId);
                         if (fullOpp) onShareBulletin?.(fullOpp);
                       }}
                       className="py-2 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-xs transition-colors"
