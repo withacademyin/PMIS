@@ -17,9 +17,9 @@ import Link from "next/link";
 const TRADES = ["welders", "electricians", "fitters", "machinists", "plumbers"];
 
 const STATS = [
-  { value: "2,400+", label: "Workers registered" },
-  { value: "120+", label: "ITIs on platform" },
-  { value: "16", label: "Districts covered" },
+  { value: "240,000+", label: "Workers registered" },
+  { value: "14,000+", label: "ITIs on platform" },
+  { value: "750+", label: "Districts covered" },
 ];
 
 const NEARBY_WORKERS = [
@@ -79,7 +79,7 @@ function Hero() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
               </span>
-              Now live across Uttar Pradesh districts
+              Now live across India
             </span>
           </motion.div>
 
@@ -118,7 +118,7 @@ function Hero() {
             transition={{ duration: 0.5, delay: 0.16 }}
             className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-lg"
           >
-            A portal for <span className="text-slate-950 font-semibold">Uttar Pradesh</span> ITI
+            A portal for <span className="text-slate-950 font-semibold">Indian</span> ITI
             workers and learners to get discovered, and for nodal officers to find{" "}
             <span className="text-slate-950 font-semibold">trade-certified talent</span> within a{" "}
             <span className="text-slate-950 font-semibold">50&nbsp;km radius</span> of their district.
@@ -176,7 +176,7 @@ function Hero() {
               <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
                 <div className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-[#4CAF50]" />
-                  <span className="text-sm font-semibold text-slate-900">Radius Search — Lucknow</span>
+                  <span className="text-sm font-semibold text-slate-900">Radius Search — New Delhi</span>
                 </div>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-100 px-2.5 py-1 text-[10px] font-semibold text-emerald-700">
                   <Radio className="w-3 h-3" />
