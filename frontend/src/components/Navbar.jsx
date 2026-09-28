@@ -41,100 +41,101 @@ export function Navbar() {
           </Link>
         </div>
 
-        {/* ── Center: State & District Global Filters ── */}
-        {!loading && user && (role === 'officer' || role === 'admin' || user.email === 'officer@example.com') ? (
-          <div className="flex items-center gap-2.5 bg-slate-50/90 border border-slate-200/90 px-3.5 py-1.5 rounded-xl shadow-2xs">
-            <div className="flex items-center gap-1.5 text-xs">
-              <span className="text-slate-500 font-semibold">State:</span>
-              <select
-                value={globalState}
-                onChange={(e) => setGlobalState(e.target.value)}
-                className="font-bold text-slate-800 bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs focus:ring-1 focus:ring-emerald-600 shadow-2xs cursor-pointer"
-              >
-                <option value="Uttar Pradesh">Uttar Pradesh</option>
-              </select>
+        {/* ── Right: Filters & User Actions ── */}
+        <div className="flex items-center gap-6">
+          {/* Filters */}
+          {!loading && user && (role === 'officer' || role === 'admin' || user.email === 'officer@example.com') && (
+            <div className="hidden md:flex items-center gap-2.5 bg-slate-50/90 border border-slate-200/90 px-3.5 py-1.5 rounded-xl shadow-2xs">
+              <div className="flex items-center gap-1.5 text-xs">
+                <span className="text-slate-500 font-semibold">State:</span>
+                <select
+                  value={globalState}
+                  onChange={(e) => setGlobalState(e.target.value)}
+                  className="font-bold text-slate-800 bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs focus:ring-1 focus:ring-emerald-600 shadow-2xs cursor-pointer"
+                >
+                  <option value="Uttar Pradesh">Uttar Pradesh</option>
+                </select>
+              </div>
+
+              <span className="text-slate-300">|</span>
+
+              <div className="flex items-center gap-1.5 text-xs">
+                <span className="text-slate-500 font-semibold">District:</span>
+                <select
+                  value={globalDistrict}
+                  onChange={(e) => setGlobalDistrict(e.target.value)}
+                  className="font-bold text-emerald-800 bg-emerald-50 border border-emerald-300/80 rounded-lg px-2.5 py-1 text-xs focus:ring-1 focus:ring-emerald-600 shadow-2xs cursor-pointer"
+                >
+                  <option value="ALL">All Districts</option>
+                  {availableDistricts.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
+          )}
 
-            <span className="text-slate-300">|</span>
-
-            <div className="flex items-center gap-1.5 text-xs">
-              <span className="text-slate-500 font-semibold">District:</span>
-              <select
-                value={globalDistrict}
-                onChange={(e) => setGlobalDistrict(e.target.value)}
-                className="font-bold text-emerald-800 bg-emerald-50 border border-emerald-300/80 rounded-lg px-2.5 py-1 text-xs focus:ring-1 focus:ring-emerald-600 shadow-2xs cursor-pointer"
-              >
-                <option value="ALL">All Districts</option>
-                {availableDistricts.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        ) : (
-          <nav className="hidden md:flex items-center gap-2 text-sm font-medium text-slate-500" />
-        )}
-
-        {/* ── Right: User Actions ── */}
-        <div className="flex items-center gap-4">
-          {!loading && user ? (
-            <div className="flex items-center gap-4">
-              {/* Avatar with proper fallback for all roles */}
-              <div className="hidden md:flex items-center gap-3 border-r border-slate-200 pr-4">
-                <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-sm font-semibold text-slate-600 tracking-wider">
-                  {(() => {
-                    if (role === 'admin') {
-                      return <ShieldCheck className="w-5 h-5 text-slate-500" strokeWidth={1.75} />;
-                    }
-                    const name =
-                      user?.workerProfile?.fullName ||
-                      user?.officerProfile?.name ||
-                      user?.name ||
-                      user?.email;
-                    if (!name) return <User className="w-3.5 h-3.5 text-slate-500" strokeWidth={1.75} />;
-                    const parts = name.trim().split(/\s+/);
-                    if (parts.length > 1 && parts[parts.length - 1].length > 0) {
-                      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-                    }
-                    return name.trim().slice(0, 2).toUpperCase();
-                  })()}
-                </div>
-                <div className="hidden lg:block">
-                  <p className="text-sm font-medium text-slate-700 leading-none">
-                    {role === 'admin'
-                      ? 'Admin'
-                      : user?.workerProfile?.fullName ||
+          {/* User Actions */}
+          <div className="flex items-center gap-4">
+            {!loading && user ? (
+              <div className="flex items-center gap-4">
+                {/* Avatar with proper fallback for all roles */}
+                <div className="hidden md:flex items-center gap-3 border-r border-slate-200 pr-4">
+                  <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-sm font-semibold text-slate-600 tracking-wider">
+                    {(() => {
+                      if (role === 'admin') {
+                        return <ShieldCheck className="w-5 h-5 text-slate-500" strokeWidth={1.75} />;
+                      }
+                      const name =
+                        user?.workerProfile?.fullName ||
                         user?.officerProfile?.name ||
                         user?.name ||
-                        user?.email?.split('@')[0]}
-                  </p>
-                  <p className="text-xs text-slate-400 mt-1 capitalize">{role}</p>
+                        user?.email;
+                      if (!name) return <User className="w-3.5 h-3.5 text-slate-500" strokeWidth={1.75} />;
+                      const parts = name.trim().split(/\s+/);
+                      if (parts.length > 1 && parts[parts.length - 1].length > 0) {
+                        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+                      }
+                      return name.trim().slice(0, 2).toUpperCase();
+                    })()}
+                  </div>
+                  <div className="hidden lg:block">
+                    <p className="text-sm font-medium text-slate-700 leading-none">
+                      {role === 'admin'
+                        ? 'Admin'
+                        : user?.workerProfile?.fullName ||
+                          user?.officerProfile?.name ||
+                          user?.name ||
+                          user?.email?.split('@')[0]}
+                    </p>
+                    <p className="text-xs text-slate-400 mt-1 capitalize">{role}</p>
+                  </div>
                 </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={logout}
-                className="h-10 text-sm text-slate-400 hover:text-slate-800 px-3"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
-            </div>
-          ) : (
-            !loading && (
-              <>
-                <Link
-                  href="/auth/login"
-                  className="text-sm font-medium bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-md transition-colors"
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={logout}
+                  className="h-10 text-sm text-slate-400 hover:text-slate-800 px-3"
                 >
-                  Log In
-                </Link>
-              </>
-            )
-          )}
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </Button>
+              </div>
+            ) : (
+              !loading && (
+                <>
+                  <Link
+                    href="/auth/login"
+                    className="text-sm font-medium bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-md transition-colors"
+                  >
+                    Log In
+                  </Link>
+                </>
+              )
+            )}
+          </div>
         </div>
 
       </div>
