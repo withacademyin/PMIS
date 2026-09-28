@@ -107,7 +107,7 @@ export function RadarSidebar({
               className={`w-4 h-4 ${isNavActive('opportunities') ? 'text-amber-400' : 'text-slate-600 group-hover:text-slate-600'
                 }`}
             />
-            <span>📍 Opportunities</span>
+            <span> Opportunities</span>
           </div>
           <span
             className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${isNavActive('opportunities')
@@ -165,7 +165,7 @@ export function RadarSidebar({
                 className={`w-4 h-4 ${isMobilisationActive ? 'text-rose-600' : 'text-slate-600 group-hover:text-slate-600'
                   }`}
               />
-              <span>📢 Events &amp; Camps</span>
+              <span> Events &amp; Camps</span>
             </div>
             {mobilisationOpen ? (
               <ChevronDown className="w-3.5 h-3.5 text-slate-600" />
