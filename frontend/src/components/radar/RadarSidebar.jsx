@@ -53,13 +53,9 @@ export function RadarSidebar({
       {/* ── Brand Header ── */}
       <div className="p-4 border-b border-slate-100 bg-gradient-to-b from-slate-50/80 to-white">
         <div className="flex items-start gap-2.5">
-          <div className="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-emerald-600/20">
-            <Radio className="w-5 h-5 animate-pulse" />
-          </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
               <h1 className="text-[14px] font-bold tracking-tight text-slate-900 leading-tight">
-                PMIS Opportunity Radar
               </h1>
             </div>
             <div className="mt-1 flex items-center gap-1.5">
