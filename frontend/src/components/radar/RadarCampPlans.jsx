@@ -26,17 +26,24 @@ export function RadarCampPlans({
   preselectedOpportunity,
   nodalOfficer,
 }) {
-  const filteredOpportunities = globalDistrict === 'ALL' 
+  const filteredOpportunities = !globalDistrict || globalDistrict === 'ALL' 
     ? opportunities 
-    : opportunities.filter(op => op.district === globalDistrict);
+    : opportunities.filter(op => op.district?.toLowerCase() === globalDistrict.toLowerCase());
+
+  const filteredInstitutions = React.useMemo(() => {
+    if (!globalDistrict || globalDistrict === 'ALL') return institutions;
+    return institutions.filter(
+      (inst) => inst.district?.toLowerCase() === globalDistrict.toLowerCase()
+    );
+  }, [institutions, globalDistrict]);
 
   const defaultOpp = preselectedOpportunity || filteredOpportunities[0] || opportunities[0];
   const [selectedOppId, setSelectedOppId] = useState(defaultOpp?.id || 'DEMO-0007');
   const activeOpp = filteredOpportunities.find((o) => o.id === selectedOppId) || filteredOpportunities[0] || opportunities[0];
 
   const defaultInst =
-    institutions.find((i) => i.id === preselectedOpportunity?.targetInstitution?.id) ||
-    institutions.find((i) => i.id === 'INST-001') ||
+    filteredInstitutions.find((i) => i.id === preselectedOpportunity?.targetInstitution?.id) ||
+    filteredInstitutions[0] ||
     institutions[0];
 
   const [formData, setFormData] = useState({
@@ -220,7 +227,7 @@ export function RadarCampPlans({
                 onChange={(e) => setFormData({ ...formData, institutionId: e.target.value })}
                 className="w-full py-2 px-3 rounded-lg border border-slate-200 bg-white text-slate-800 text-xs font-medium focus:ring-1 focus:ring-slate-900"
               >
-                {institutions.map((inst) => (
+                {filteredInstitutions.map((inst) => (
                   <option key={inst.id} value={inst.id}>
                     {inst.name} ({inst.totalSeats ?? inst.strength ?? 120} seats)
                   </option>

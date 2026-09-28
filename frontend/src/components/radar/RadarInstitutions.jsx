@@ -109,7 +109,7 @@ export function RadarInstitutions({
                 Institutions & Talent Network
               </h2>
               <p className="text-xs text-slate-500">
-                Live database of {normalizedList.length} colleges, polytechnics, and ITIs in catchment.
+                Live database of {districtFilteredList.length} colleges, polytechnics, and ITIs in catchment.
               </p>
             </div>
           </div>

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useFilter } from '@/context/FilterContext';
 import { api } from '@/lib/api';
 import RadarSidebar from '@/components/radar/RadarSidebar';
 import RadarDashboard from '@/components/radar/RadarDashboard';
@@ -30,6 +31,14 @@ import { Menu, X } from 'lucide-react';
 
 export function RadarView() {
   const { user, logout } = useAuth();
+  const {
+    globalState,
+    setGlobalState,
+    globalDistrict,
+    setGlobalDistrict,
+    availableDistricts,
+    setAvailableDistricts,
+  } = useFilter();
   const [activeNav, setActiveNav] = useState('dashboard');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
@@ -47,13 +56,49 @@ export function RadarView() {
   const [liveInstitutions, setLiveInstitutions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const [globalDistrict, setGlobalDistrict] = useState('ALL');
-
   const uniqueDistricts = useMemo(() => {
     const oppDistricts = liveOpportunities.map((op) => op.district);
     const instDistricts = liveInstitutions.map((inst) => inst.district);
-    return Array.from(new Set([...oppDistricts, ...instDistricts])).filter(Boolean).sort();
+    const defaultDistricts = [
+      'Agra',
+      'Aligarh',
+      'Ayodhya',
+      'Bareilly',
+      'Firozabad',
+      'Gorakhpur',
+      'Hathras',
+      'Kanpur Nagar',
+      'Lucknow',
+      'Mathura',
+      'Meerut',
+      'Prayagraj',
+      'Varanasi'
+    ];
+    return Array.from(new Set([...oppDistricts, ...instDistricts, ...defaultDistricts]))
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b));
   }, [liveOpportunities, liveInstitutions]);
+
+  useEffect(() => {
+    if (uniqueDistricts.length > 0) {
+      setAvailableDistricts(uniqueDistricts);
+    }
+  }, [uniqueDistricts, setAvailableDistricts]);
+
+  // Global filtered data across all tabs
+  const filteredOpportunities = useMemo(() => {
+    if (!globalDistrict || globalDistrict === 'ALL') return liveOpportunities;
+    return liveOpportunities.filter(
+      (op) => op.district?.toLowerCase() === globalDistrict.toLowerCase()
+    );
+  }, [liveOpportunities, globalDistrict]);
+
+  const filteredInstitutions = useMemo(() => {
+    if (!globalDistrict || globalDistrict === 'ALL') return liveInstitutions;
+    return liveInstitutions.filter(
+      (inst) => inst.district?.toLowerCase() === globalDistrict.toLowerCase()
+    );
+  }, [liveInstitutions, globalDistrict]);
 
   // Active officer profile data
   const officerProfile = useMemo(() => ({
@@ -189,19 +234,44 @@ export function RadarView() {
     };
   }, [user, officerProfile.district]);
 
-  // Compute live KPI metrics
+  // On-demand ITI loading when district changes
+  useEffect(() => {
+    if (!globalDistrict || globalDistrict === 'ALL') return;
+
+    const hasDistItis = liveInstitutions.some(
+      (inst) => inst.district?.toLowerCase() === globalDistrict.toLowerCase()
+    );
+
+    if (!hasDistItis) {
+      api.getITIs({ district: globalDistrict }).then((res) => {
+        if (res?.success && Array.isArray(res.itis) && res.itis.length > 0) {
+          const normalized = res.itis.map(normalizeInstitution).filter(Boolean);
+          const enriched = computeInstitutionsWithMatchCounts(normalized, liveOpportunities);
+          setLiveInstitutions((prev) => {
+            const existingIds = new Set(prev.map((i) => i.id));
+            const newOnes = enriched.filter((i) => !existingIds.has(i.id));
+            return [...prev, ...newOnes];
+          });
+        }
+      }).catch((err) => {
+        console.warn(`Could not fetch ITIs for district ${globalDistrict}:`, err);
+      });
+    }
+  }, [globalDistrict, liveOpportunities, liveInstitutions]);
+
+  // Compute live KPI metrics based on filtered opportunities
   const liveKpiMetrics = useMemo(() => {
-    if (liveOpportunities.length === 0) return KPI_METRICS;
-    const highRiskCount = liveOpportunities.filter((o) => o.risk === 'HIGH').length;
-    const openingsAtRisk = liveOpportunities
+    if (filteredOpportunities.length === 0) return KPI_METRICS;
+    const highRiskCount = filteredOpportunities.filter((o) => o.risk === 'HIGH').length;
+    const openingsAtRisk = filteredOpportunities
       .filter((o) => o.risk === 'HIGH')
       .reduce((sum, o) => sum + (o.openings || 0), 0);
-    const totalOpenings = liveOpportunities.reduce((sum, o) => sum + (o.openings || 0), 0);
-    const totalApplications = liveOpportunities.reduce((sum, o) => sum + (o.applications || 0), 0);
-    const closingNext7Days = liveOpportunities.filter((o) => (o.daysLeft || 30) <= 7).length;
+    const totalOpenings = filteredOpportunities.reduce((sum, o) => sum + (o.openings || 0), 0);
+    const totalApplications = filteredOpportunities.reduce((sum, o) => sum + (o.applications || 0), 0);
+    const closingNext7Days = filteredOpportunities.filter((o) => (o.daysLeft || 30) <= 7).length;
 
     return {
-      openOpportunities: liveOpportunities.length,
+      openOpportunities: filteredOpportunities.length,
       highRisk: highRiskCount,
       openingsAtRisk,
       closingNext7Days,
@@ -210,7 +280,7 @@ export function RadarView() {
       lastUpdated: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
       weekRange: KPI_METRICS.weekRange,
     };
-  }, [liveOpportunities]);
+  }, [filteredOpportunities]);
 
   const handleOpenOpportunityModal = (opp) => {
     setSelectedOpportunity(opp);
@@ -236,7 +306,9 @@ export function RadarView() {
           onNavChange={(nav) => setActiveNav(nav)}
           kpiMetrics={liveKpiMetrics}
           officerProfile={officerProfile}
-          institutionsCount={liveInstitutions.length}
+          globalDistrict={globalDistrict}
+          globalState={globalState}
+          institutionsCount={filteredInstitutions.length}
           onLogout={logout}
         />
       </div>
@@ -264,7 +336,9 @@ export function RadarView() {
               }}
               kpiMetrics={liveKpiMetrics}
               officerProfile={officerProfile}
-              institutionsCount={liveInstitutions.length}
+              globalDistrict={globalDistrict}
+              globalState={globalState}
+              institutionsCount={filteredInstitutions.length}
               onLogout={logout}
             />
           </div>
@@ -287,7 +361,7 @@ export function RadarView() {
           </div>
 
           <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-            {officerProfile.district}, UP
+            {globalDistrict === 'ALL' ? 'All Districts' : globalDistrict}, UP
           </span>
         </div>
 
@@ -295,11 +369,13 @@ export function RadarView() {
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
           {activeNav === 'dashboard' && (
             <RadarDashboard
-              opportunities={liveOpportunities}
-              institutions={liveInstitutions}
+              opportunities={filteredOpportunities}
+              institutions={filteredInstitutions}
               priorityActions={PRIORITY_ACTIONS}
               globalDistrict={globalDistrict}
               setGlobalDistrict={setGlobalDistrict}
+              globalState={globalState}
+              setGlobalState={setGlobalState}
               uniqueDistricts={uniqueDistricts}
               onSelectOpportunity={handleOpenOpportunityModal}
               onPlanCamp={handlePlanCamp}
@@ -313,7 +389,7 @@ export function RadarView() {
 
           {activeNav === 'opportunities' && (
             <RadarOpportunities
-              opportunities={liveOpportunities}
+              opportunities={filteredOpportunities}
               initialFilters={opportunityFilters}
               globalDistrict={globalDistrict}
               setGlobalDistrict={setGlobalDistrict}
@@ -326,8 +402,8 @@ export function RadarView() {
 
           {activeNav === 'institutions' && (
             <RadarInstitutions
-              institutions={liveInstitutions}
-              opportunities={liveOpportunities}
+              institutions={filteredInstitutions}
+              opportunities={filteredOpportunities}
               globalDistrict={globalDistrict}
               setGlobalDistrict={setGlobalDistrict}
               uniqueDistricts={uniqueDistricts}
@@ -338,7 +414,7 @@ export function RadarView() {
 
           {activeNav === 'bulletins' && (
             <RadarBulletins
-              opportunities={liveOpportunities}
+              opportunities={filteredOpportunities}
               globalDistrict={globalDistrict}
               setGlobalDistrict={setGlobalDistrict}
               uniqueDistricts={uniqueDistricts}
@@ -349,8 +425,8 @@ export function RadarView() {
 
           {activeNav === 'camp-plans' && (
             <RadarCampPlans
-              opportunities={liveOpportunities}
-              institutions={liveInstitutions}
+              opportunities={filteredOpportunities}
+              institutions={filteredInstitutions}
               globalDistrict={globalDistrict}
               setGlobalDistrict={setGlobalDistrict}
               uniqueDistricts={uniqueDistricts}

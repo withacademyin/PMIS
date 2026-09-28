@@ -3,6 +3,7 @@
 import React from 'react';
 import { LogOut, User, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useFilter } from '@/context/FilterContext';
 import Link from 'next/link';
 import { Logo } from '@/components/ui/logo';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,13 @@ function getDashboardPath(role) {
 
 export function Navbar() {
   const { user, logout, loading } = useAuth();
+  const {
+    globalState,
+    setGlobalState,
+    globalDistrict,
+    setGlobalDistrict,
+    availableDistricts,
+  } = useFilter();
   const role = user?.role?.toLowerCase();
 
   return (
@@ -33,10 +41,41 @@ export function Navbar() {
           </Link>
         </div>
 
-        {/* ── Center: Navigation ── */}
-        <nav className="hidden md:flex items-center gap-2 text-sm font-medium text-slate-500">
-          {/* Navigation links have been removed per user request */}
-        </nav>
+        {/* ── Center: State & District Global Filters ── */}
+        {!loading && user && (role === 'officer' || role === 'admin' || user.email === 'officer@example.com') ? (
+          <div className="flex items-center gap-2.5 bg-slate-50/90 border border-slate-200/90 px-3.5 py-1.5 rounded-xl shadow-2xs">
+            <div className="flex items-center gap-1.5 text-xs">
+              <span className="text-slate-500 font-semibold">State:</span>
+              <select
+                value={globalState}
+                onChange={(e) => setGlobalState(e.target.value)}
+                className="font-bold text-slate-800 bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs focus:ring-1 focus:ring-emerald-600 shadow-2xs cursor-pointer"
+              >
+                <option value="Uttar Pradesh">Uttar Pradesh</option>
+              </select>
+            </div>
+
+            <span className="text-slate-300">|</span>
+
+            <div className="flex items-center gap-1.5 text-xs">
+              <span className="text-slate-500 font-semibold">District:</span>
+              <select
+                value={globalDistrict}
+                onChange={(e) => setGlobalDistrict(e.target.value)}
+                className="font-bold text-emerald-800 bg-emerald-50 border border-emerald-300/80 rounded-lg px-2.5 py-1 text-xs focus:ring-1 focus:ring-emerald-600 shadow-2xs cursor-pointer"
+              >
+                <option value="ALL">All Districts</option>
+                {availableDistricts.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        ) : (
+          <nav className="hidden md:flex items-center gap-2 text-sm font-medium text-slate-500" />
+        )}
 
         {/* ── Right: User Actions ── */}
         <div className="flex items-center gap-4">

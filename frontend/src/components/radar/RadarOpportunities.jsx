@@ -24,7 +24,7 @@ export function RadarOpportunities({ opportunities, initialFilters, globalDistri
 
   // Filter and sort opportunities (High -> Medium -> Low, then fewest days left)
   const filteredOpportunities = opportunities.filter((op) => {
-    const matchesDistrict = globalDistrict === 'ALL' || op.district === globalDistrict;
+    const matchesDistrict = !globalDistrict || globalDistrict === 'ALL' || op.district?.toLowerCase() === globalDistrict?.toLowerCase();
     
     const matchesSearch =
       op.roleTitle.toLowerCase().includes(search.toLowerCase()) ||
@@ -65,7 +65,7 @@ export function RadarOpportunities({ opportunities, initialFilters, globalDistri
                 Internship Opportunities Master Table
               </h2>
               <p className="text-xs text-slate-500">
-                All open PMIS internship postings available across Gorakhpur and catchment.
+                All open internship postings available across {globalDistrict === 'ALL' ? 'all districts' : globalDistrict} and catchment.
               </p>
             </div>
           </div>

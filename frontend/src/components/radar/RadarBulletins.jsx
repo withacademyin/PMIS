@@ -21,9 +21,9 @@ import {
 } from 'lucide-react';
 
 export function RadarBulletins({ opportunities = [], globalDistrict, setGlobalDistrict, uniqueDistricts, selectedOppId, onSelectOpportunity }) {
-  const filteredOpportunities = globalDistrict === 'ALL' 
+  const filteredOpportunities = !globalDistrict || globalDistrict === 'ALL' 
     ? opportunities 
-    : opportunities.filter(op => op.district === globalDistrict);
+    : opportunities.filter(op => op.district?.toLowerCase() === globalDistrict?.toLowerCase());
 
   const [currentId, setCurrentId] = useState(selectedOppId || filteredOpportunities[0]?.id || 'DEMO-0007');
   const [language, setLanguage] = useState('EN'); // EN or HI

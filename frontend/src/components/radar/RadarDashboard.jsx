@@ -34,6 +34,8 @@ export function RadarDashboard({
   onNavigateToNav,
   globalDistrict,
   setGlobalDistrict,
+  globalState = 'Uttar Pradesh',
+  setGlobalState,
   uniqueDistricts,
 }) {
   const [selectedCatchment, setSelectedCatchment] = useState('60');
@@ -45,6 +47,13 @@ export function RadarDashboard({
       ? opportunities
       : opportunities.filter(
           (op) => op.district?.toLowerCase() === globalDistrict?.toLowerCase()
+        );
+
+  const filteredInstitutions =
+    !globalDistrict || globalDistrict === 'ALL'
+      ? institutions
+      : institutions.filter(
+          (inst) => inst.district?.toLowerCase() === globalDistrict?.toLowerCase()
         );
 
   // Dynamically compute KPI metrics based on filtered opportunities
@@ -110,9 +119,13 @@ export function RadarDashboard({
         {/* Filters on the right */}
         <div className="flex flex-wrap items-center justify-end gap-2 text-xs text-slate-600 shrink-0 mt-4 md:mt-0">
           <span className="font-semibold text-slate-700">State:</span>
-          <span className="px-2 py-0.5 rounded-md bg-slate-100 font-bold text-slate-900">
-            Uttar Pradesh
-          </span>
+          <select
+            value={globalState}
+            onChange={(e) => setGlobalState?.(e.target.value)}
+            className="py-0.5 px-2 rounded-md bg-slate-100 text-slate-800 font-bold border border-slate-200 text-xs focus:ring-1 focus:ring-slate-700"
+          >
+            <option value="Uttar Pradesh">Uttar Pradesh</option>
+          </select>
 
           <span className="text-slate-300">•</span>
 
@@ -268,7 +281,7 @@ export function RadarDashboard({
       {/* ── 5.3 District Map (Plan.md Section 5.3) ── */}
       <RadarMap
         opportunities={filteredOpportunities}
-        institutions={institutions}
+        institutions={filteredInstitutions}
         selectedCatchment={selectedCatchment}
         onSelectCatchment={setSelectedCatchment}
         onSelectOpportunity={onSelectOpportunity}

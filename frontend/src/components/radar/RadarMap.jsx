@@ -165,8 +165,34 @@ export function RadarMap({
       markersLayer.clearLayers();
       if (routesLayer) routesLayer.clearLayers();
 
-      // ── 1. Catchment Circle around Gorakhpur Industrial Corridor ──
-      const centerCoord = [26.755, 83.28];
+      // Collect valid coordinates from institutions and opportunities
+      const instCoords = institutions
+        .map((inst) => {
+          const lat = inst.coordinates?.lat ?? inst.lat;
+          const lng = inst.coordinates?.lng ?? inst.lng;
+          return lat && lng ? [Number(lat), Number(lng)] : null;
+        })
+        .filter(Boolean);
+
+      const oppCoords = (opportunities || [])
+        .map((opp) => {
+          const lat = opp.coordinates?.lat;
+          const lng = opp.coordinates?.lng;
+          return lat && lng ? [Number(lat), Number(lng)] : null;
+        })
+        .filter(Boolean);
+
+      const allCoords = [...oppCoords, ...instCoords];
+
+      // Dynamic center: centroid of all coordinates, or fallback default
+      let centerCoord = [26.755, 83.28];
+      if (allCoords.length > 0) {
+        const sumLat = allCoords.reduce((acc, c) => acc + c[0], 0);
+        const sumLng = allCoords.reduce((acc, c) => acc + c[1], 0);
+        centerCoord = [sumLat / allCoords.length, sumLng / allCoords.length];
+      }
+
+      // ── 1. Catchment Circle around District Corridor ──
       const circle = L.circle(centerCoord, {
         radius: catchmentRadiusMeters,
         color: '#10b981',
@@ -178,40 +204,41 @@ export function RadarMap({
       markersLayer.addLayer(circle);
       catchmentCircleRef.current = circle;
 
-      // ── 2. Travel Connection Lines (Section 5.3: 22 min to Govt ITI) ──
-      // Line: ABC Manufacturing [26.745, 83.362] -> Govt ITI Gorakhpur [26.7588, 83.3855]
-      const opp1Coord = [26.745, 83.362];
-      const iti1Coord = [26.7588, 83.3855];
+      // ── 2. Travel Connection Line (Dynamic Catchment Route) ──
+      if (opportunities.length > 0 && institutions.length > 0) {
+        const topOpp = opportunities[0];
+        const oppPos = [topOpp.coordinates?.lat, topOpp.coordinates?.lng];
+        if (oppPos[0] && oppPos[1]) {
+          const targetInst = topOpp.catchmentInstitutions?.[0] || institutions[0];
+          const instLat = targetInst?.coordinates?.lat ?? targetInst?.lat;
+          const instLng = targetInst?.coordinates?.lng ?? targetInst?.lng;
+          if (instLat && instLng) {
+            const instPos = [Number(instLat), Number(instLng)];
+            const travelLine = L.polyline([oppPos, instPos], {
+              color: '#ef4444',
+              weight: 3,
+              dashArray: '5, 5',
+              opacity: 0.8,
+            });
+            travelLine.bindTooltip(`⏱ Catchment Transit (${targetInst.name || 'ITI'})`, {
+              permanent: true,
+              direction: 'center',
+              className: 'leaflet-custom-tooltip font-bold text-[10px] bg-white text-rose-700 px-2 py-0.5 rounded shadow border border-rose-200',
+            });
+            if (routesLayer) routesLayer.addLayer(travelLine);
+          }
+        }
+      }
 
-      const travelLine = L.polyline([opp1Coord, iti1Coord], {
-        color: '#ef4444',
-        weight: 3,
-        dashArray: '5, 5',
-        opacity: 0.8,
-      });
-
-      travelLine.bindTooltip('⏱ 22 min drive via NH-28 (Govt ITI Gorakhpur)', {
-        permanent: true,
-        direction: 'center',
-        className: 'leaflet-custom-tooltip font-bold text-[10px] bg-white text-rose-700 px-2 py-0.5 rounded shadow border border-rose-200',
-      });
-      if (routesLayer) routesLayer.addLayer(travelLine);
-
-      // Line: Precision Auto [26.775, 83.210] -> Govt ITI Sahjanwa [26.772, 83.195]
-      const opp2Coord = [26.775, 83.21];
-      const iti2Coord = [26.772, 83.195];
-      const travelLine2 = L.polyline([opp2Coord, iti2Coord], {
-        color: '#f59e0b',
-        weight: 2.5,
-        dashArray: '4, 4',
-        opacity: 0.8,
-      });
-      travelLine2.bindTooltip('⏱ 14 min (Govt ITI Sahjanwa)', {
-        permanent: true,
-        direction: 'center',
-        className: 'leaflet-custom-tooltip font-bold text-[9px] bg-white text-amber-800 px-1.5 py-0.5 rounded shadow border border-amber-200',
-      });
-      if (routesLayer) routesLayer.addLayer(travelLine2);
+      // ── Auto-fit bounds on district markers ──
+      if (allCoords.length > 0) {
+        try {
+          const bounds = L.latLngBounds(allCoords);
+          map.fitBounds(bounds, { padding: [40, 40], maxZoom: 13 });
+        } catch (e) {
+          console.warn('Could not fit map bounds:', e);
+        }
+      }
 
       // ── 3. Render Institutions Markers ──
       institutions.forEach((inst) => {

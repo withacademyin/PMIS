@@ -25,6 +25,8 @@ export function RadarSidebar({
   onNavChange,
   kpiMetrics,
   officerProfile,
+  globalDistrict,
+  globalState = 'UP',
   onLogout,
   onSelectSubNav,
   institutionsCount,
@@ -292,7 +294,7 @@ export function RadarSidebar({
               {officerProfile?.roleTitle || 'District Nodal Officer'}
             </p>
             <p className="text-[10px] text-emerald-700 font-medium">
-              Gorakhpur, UP
+              {!globalDistrict || globalDistrict === 'ALL' ? 'All Districts, UP' : `${globalDistrict}, UP`}
             </p>
           </div>
         </div>
