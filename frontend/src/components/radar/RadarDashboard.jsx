@@ -105,40 +105,39 @@ export function RadarDashboard({
           <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
             District Opportunity Radar
           </h1>
-
-          <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-slate-600">
-            <span className="font-semibold text-slate-700">State:</span>
-            <span className="px-2 py-0.5 rounded-md bg-slate-100 font-bold text-slate-900">
-              Uttar Pradesh
-            </span>
-
-            <span className="text-slate-300">•</span>
-
-            <span className="font-semibold text-slate-700">District:</span>
-            {/* District Selector (Plan.md Section 5.1) */}
-            <select
-              value={globalDistrict}
-              onChange={(e) => setGlobalDistrict(e.target.value)}
-              className="py-0.5 px-2 rounded-md bg-emerald-50 text-emerald-800 font-bold border border-emerald-200 text-xs focus:ring-1 focus:ring-emerald-600"
-            >
-              <option value="ALL">All Districts</option>
-              {uniqueDistricts.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
-
-            <span className="text-slate-300">•</span>
-
-            <span className="font-semibold text-slate-700">Week Cycle:</span>
-            <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 font-semibold border border-amber-200">
-              {KPI_METRICS.weekRange}
-            </span>
-          </div>
         </div>
 
+        {/* Filters on the right */}
+        <div className="flex flex-wrap items-center justify-end gap-2 text-xs text-slate-600 shrink-0 mt-4 md:mt-0">
+          <span className="font-semibold text-slate-700">State:</span>
+          <span className="px-2 py-0.5 rounded-md bg-slate-100 font-bold text-slate-900">
+            Uttar Pradesh
+          </span>
 
+          <span className="text-slate-300">•</span>
+
+          <span className="font-semibold text-slate-700">District:</span>
+          {/* District Selector (Plan.md Section 5.1) */}
+          <select
+            value={globalDistrict}
+            onChange={(e) => setGlobalDistrict(e.target.value)}
+            className="py-0.5 px-2 rounded-md bg-emerald-50 text-emerald-800 font-bold border border-emerald-200 text-xs focus:ring-1 focus:ring-emerald-600"
+          >
+            <option value="ALL">All Districts</option>
+            {uniqueDistricts.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+
+          <span className="text-slate-300">•</span>
+
+          <span className="font-semibold text-slate-700">Week Cycle:</span>
+          <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 font-semibold border border-amber-200">
+            {KPI_METRICS.weekRange}
+          </span>
+        </div>
       </div>
 
       {/* ── Smart Executive Pulse Summary ── */}
